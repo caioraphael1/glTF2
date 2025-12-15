@@ -4,7 +4,7 @@ import "core:encoding/base64"
 import "core:encoding/json"
 import "core:fmt"
 import "core:mem"
-import "core:os"
+import os "core:os/os2"
 
 import "core:strconv"
 import "core:strings"
@@ -49,8 +49,8 @@ load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^D
         return nil, GLTF_Error{type = .No_File, proc_name = #procedure, param = {name = file_name}}
     }
 
-    file_content, ok := os.read_entire_file(file_name, allocator)
-    if !ok {
+    file_content, read_err := os.read_entire_file(file_name, allocator)
+    if read_err != nil {
         return nil, GLTF_Error{type = .Cant_Read_File, proc_name = #procedure, param = {name = file_name}}
     }
 
@@ -77,7 +77,6 @@ parse :: proc(file_content: []byte, opt := Options{}, allocator: mem.Allocator) 
         return data, GLTF_Error{type = .Data_Too_Short, proc_name = #procedure}
     }
 
-    context.allocator = allocator
     data = new(Data, allocator)
 
     json_data := file_content
@@ -171,7 +170,7 @@ extensions_names_parse :: proc(object: json.Object, name: string, allocator: mem
 }
 
 @(require_results)
-uri_parse :: proc(uri: Uri, gltf_dir: string) -> Uri {
+uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     if uri == nil {
         return uri
     }
@@ -183,8 +182,8 @@ uri_parse :: proc(uri: Uri, gltf_dir: string) -> Uri {
     type_idx := strings.index_rune(str_data, ':')
     if type_idx == -1 {
         // Check if this is possible file and if so load it
-        bytes, ok := os.read_entire_file(fmt.tprintf("%s/%s", gltf_dir, str_data))
-        if !ok {
+        bytes, err := os.read_entire_file(fmt.tprintf("%s/%s", gltf_dir, str_data), allocator)
+        if err != nil {
             return uri
         }
         return cast([]byte)bytes
@@ -206,7 +205,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string) -> Uri {
 
         switch encoding {
         case "base64":
-            return base64.decode(str_data[encoding_end_idx + 1:])
+            return base64.decode(str_data[encoding_end_idx + 1:], allocator = allocator)
         }
     }
 
@@ -748,7 +747,7 @@ buffers_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Allo
                 res[idx].name = v.(string)
 
             case "uri":
-                res[idx].uri = uri_parse(v.(string), gltf_dir)
+                res[idx].uri = uri_parse(v.(string), gltf_dir, allocator)
 
             case EXTENSIONS_KEY:
                 res[idx].extensions = v

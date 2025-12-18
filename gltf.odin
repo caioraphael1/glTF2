@@ -3,6 +3,7 @@ package gltf2
 import "core:encoding/base64"
 import "core:encoding/json"
 import "core:fmt"
+import "base:runtime"
 import "core:mem"
 import os "core:os/os2"
 
@@ -60,7 +61,7 @@ load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^D
         delete_content = true,
         gltf_dir       = gltf_dir,
     }
-    switch strings.to_lower(ext(file_name), context.temp_allocator) {
+    switch strings.to_lower(ext(file_name), runtime.temp_allocator) {
     case ".gltf":
         return parse(file_content, options, allocator)
     case ".glb":

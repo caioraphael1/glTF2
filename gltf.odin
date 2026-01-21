@@ -26,7 +26,7 @@ dir :: proc(path: string, allocator: mem.Allocator) -> (dirs: string) {
     if path[last_char] == '/' {
         path_trimmed = path[:last_char]
     }
-    dirs_slice := strings.split(path_trimmed, "/", allocator)
+    dirs_slice, _ := strings.split(path_trimmed, "/", allocator)
     last := dirs_slice[len(dirs_slice) - 1]
     return strings.trim_suffix(path_trimmed, last)
 }
@@ -44,7 +44,7 @@ ext :: proc(path: string) -> string {
 /*
     Main library interface procedures
 */
-@(require_results)
+
 load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^Data, err: Error) {
     if !os.exists(file_name) {
         return nil, GLTF_Error{type = .No_File, proc_name = #procedure, param = {name = file_name}}
@@ -61,7 +61,8 @@ load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^D
         delete_content = true,
         gltf_dir       = gltf_dir,
     }
-    switch strings.to_lower(ext(file_name), runtime.temp_allocator) {
+    file_name_lower, _ := strings.to_lower(ext(file_name), runtime.temp_allocator)
+    switch file_name_lower {
     case ".gltf":
         return parse(file_content, options, allocator)
     case ".glb":
@@ -72,13 +73,13 @@ load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^D
     }
 }
 
-@(require_results)
+
 parse :: proc(file_content: []byte, opt := Options{}, allocator: mem.Allocator) -> (data: ^Data, err: Error) {
     if len(file_content) < GLB_HEADER_SIZE {
         return data, GLTF_Error{type = .Data_Too_Short, proc_name = #procedure}
     }
 
-    data = new(Data, allocator)
+    data, _ = new(Data, allocator)
 
     json_data := file_content
     content_index: u32
@@ -143,7 +144,7 @@ parse :: proc(file_content: []byte, opt := Options{}, allocator: mem.Allocator) 
         chunk_header := (cast(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + GLB_CHUNK_HEADER_SIZE])))
         content_index += GLB_CHUNK_HEADER_SIZE
 
-        data.buffers[buf_idx].uri = make([]byte, chunk_header.length, allocator)
+        data.buffers[buf_idx].uri, _ = make([]byte, chunk_header.length, allocator)
         mem.copy(raw_data(data.buffers[buf_idx].uri.([]byte)), raw_data(file_content[content_index:]), int(chunk_header.length))
         content_index += u32(chunk_header.length)
     }
@@ -154,14 +155,14 @@ parse :: proc(file_content: []byte, opt := Options{}, allocator: mem.Allocator) 
 /*
     Utilitiy procedures
 */
-@(require_results)
+
 extensions_names_parse :: proc(object: json.Object, name: string, allocator: mem.Allocator) -> (res: []string) {
     if name not_in object {
         return
     }
 
     name_array := object[name].(json.Array)
-    res = make([]string, len(name_array), allocator)
+    res, _ = make([]string, len(name_array), allocator)
 
     for n, i in name_array {
         res[i] = n.(string)
@@ -170,7 +171,7 @@ extensions_names_parse :: proc(object: json.Object, name: string, allocator: mem
     return res
 }
 
-@(require_results)
+
 uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     if uri == nil {
         return uri
@@ -206,7 +207,8 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
 
         switch encoding {
         case "base64":
-            return base64.decode(str_data[encoding_end_idx + 1:], allocator = allocator)
+            dec, _ := base64.decode(str_data[encoding_end_idx + 1:], allocator = allocator)
+            return dec
         }
     }
 
@@ -222,7 +224,7 @@ warning_unexpected_data :: proc(proc_name, key: string, val: json.Value, idx := 
 /*
     Asseet parsing
 */
-@(require_results)
+
 asset_parse :: proc(object: json.Object) -> (res: Asset, err: Error) {
     if ASSET_KEY not_in object {
         return res, GLTF_Error{type = .JSON_Missing_Section, proc_name = #procedure, param = {name = ASSET_KEY}}
@@ -276,14 +278,14 @@ asset_parse :: proc(object: json.Object) -> (res: Asset, err: Error) {
 /*
     Accessors parsing
 */
-@(require_results)
+
 accessors_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Accessor, err: Error) {
     if ACCESSORS_KEY not_in object {
         return
     }
 
     accessor_array := object[ACCESSORS_KEY].(json.Array)
-    res = make([]Accessor, len(accessor_array), allocator)
+    res, _ = make([]Accessor, len(accessor_array), allocator)
 
     for access, idx in accessor_array {
         component_type_set, count_set, type_set: bool
@@ -398,7 +400,7 @@ accessors_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
 }
 
 
-@(require_results)
+
 accessor_sparse_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: Accessor_Sparse, err: Error) {
     for k, v in object {
         switch k {
@@ -432,9 +434,9 @@ accessor_sparse_parse :: proc(object: json.Object, allocator: mem.Allocator) -> 
     return res, nil
 }
 
-@(require_results)
+
 sparse_indices_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Accessor_Sparse_Indices, err: Error) {
-    res = make([]Accessor_Sparse_Indices, len(array), allocator)
+    res, _ = make([]Accessor_Sparse_Indices, len(array), allocator)
 
     for index, idx in array {
         buffer_view_set, component_type_set: bool
@@ -487,9 +489,9 @@ sparse_indices_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (re
     return res, nil
 }
 
-@(require_results)
+
 sparse_values_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Accessor_Sparse_Values, err: Error) {
-    res = make([]Accessor_Sparse_Values, len(array), allocator)
+    res, _ = make([]Accessor_Sparse_Values, len(array), allocator)
 
     for value, idx in array {
         buffer_view_set: bool
@@ -532,14 +534,14 @@ sparse_values_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res
 /*
     Animations parsing
 */
-@(require_results)
+
 animations_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Animation, err: Error) {
     if ANIMATIONS_KEY not_in object {
         return
     }
 
     animations_array := object[ANIMATIONS_KEY].(json.Array)
-    res = make([]Animation, len(animations_array), allocator)
+    res, _ = make([]Animation, len(animations_array), allocator)
 
     for animation, idx in animations_array {
         for k, v in animation.(json.Object) {
@@ -578,9 +580,9 @@ animations_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res:
     return res, nil
 }
 
-@(require_results)
+
 animation_channels_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Animation_Channel, err: Error) {
-    res = make([]Animation_Channel, len(array), allocator)
+    res, _ = make([]Animation_Channel, len(array), allocator)
 
     for channel, idx in array {
         sampler_set, target_set: bool
@@ -621,7 +623,7 @@ animation_channels_parse :: proc(array: json.Array, allocator: mem.Allocator) ->
     return res, nil
 }
 
-@(require_results)
+
 animation_channel_target_parse :: proc(object: json.Object) -> (res: Animation_Channel_Target, err: Error) {
     path_set: bool
 
@@ -666,9 +668,9 @@ animation_channel_target_parse :: proc(object: json.Object) -> (res: Animation_C
     return res, nil
 }
 
-@(require_results)
+
 animation_samplers_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Animation_Sampler, err: Error) {
-    res = make([]Animation_Sampler, len(array), allocator)
+    res, _ = make([]Animation_Sampler, len(array), allocator)
 
     for sampler, idx in array {
         input_set, output_set: bool
@@ -725,14 +727,14 @@ animation_samplers_parse :: proc(array: json.Array, allocator: mem.Allocator) ->
 /*
     Buffers parsing
 */
-@(require_results)
+
 buffers_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Allocator) -> (res: []Buffer, err: Error) {
     if BUFFERS_KEY not_in object {
         return
     }
 
     buffers_array := object[BUFFERS_KEY].(json.Array)
-    res = make([]Buffer, len(buffers_array), allocator)
+    res, _ = make([]Buffer, len(buffers_array), allocator)
 
     for buffer, idx in buffers_array {
         byte_length_set: bool
@@ -777,14 +779,14 @@ buffers_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Allo
 /*
     Buffer Views parsing
 */
-@(require_results)
+
 buffer_views_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Buffer_View, err: Error) {
     if BUFFER_VIEWS_KEY not_in object {
         return
     }
 
     views_array := object[BUFFER_VIEWS_KEY].(json.Array)
-    res = make([]Buffer_View, len(views_array), allocator)
+    res, _ = make([]Buffer_View, len(views_array), allocator)
 
     for view, idx in views_array {
         buffer_set, byte_length_set: bool
@@ -844,14 +846,14 @@ buffer_views_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (re
 /*
     Cameras parsing
 */
-@(require_results)
+
 cameras_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Camera, err: Error) {
     if CAMERAS_KEY not_in object {
         return
     }
 
     cameras_array := object[CAMERAS_KEY].(json.Array)
-    res = make([]Camera, len(cameras_array), allocator)
+    res, _ = make([]Camera, len(cameras_array), allocator)
 
     for camera, idx in cameras_array {
         for k, v in camera.(json.Object) {
@@ -888,7 +890,7 @@ cameras_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []
 }
 
 
-@(require_results)
+
 orthographic_camera_parse :: proc(object: json.Object) -> (res: Orthographic_Camera, err: Error) {
     xmag_set, ymag_set, zfar_set, znear_set: bool
 
@@ -941,7 +943,7 @@ orthographic_camera_parse :: proc(object: json.Object) -> (res: Orthographic_Cam
     return res, nil
 }
 
-@(require_results)
+
 perspective_camera_parse :: proc(object: json.Object) -> (res: Perspective_Camera, err: Error) {
     yfov_set, znear_set: bool
 
@@ -987,14 +989,14 @@ perspective_camera_parse :: proc(object: json.Object) -> (res: Perspective_Camer
 /*
     Images parsing
 */
-@(require_results)
+
 images_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Allocator) -> (res: []Image, err: Error) {
     if IMAGES_KEY not_in object {
         return
     }
 
     images_array := object[IMAGES_KEY].(json.Array)
-    res = make([]Image, len(images_array), allocator)
+    res, _ = make([]Image, len(images_array), allocator)
 
     for image, idx in images_array {
         for k, v in image.(json.Object) {
@@ -1038,14 +1040,14 @@ images_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Alloc
 /*
     Materials parsing
 */
-@(require_results)
+
 materials_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Material, err: Error) {
     if MATERIALS_KEY not_in object {
         return
     }
 
     materials_array := object[MATERIALS_KEY].(json.Array)
-    res = make([]Material, len(materials_array), allocator)
+    res, _ = make([]Material, len(materials_array), allocator)
 
     for material, idx in materials_array {
         res[idx].alpha_cutoff = 0.5
@@ -1110,7 +1112,7 @@ materials_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
 }
 
 
-@(require_results)
+
 normal_texture_info_parse :: proc(object: json.Object) -> (res: Material_Normal_Texture_Info, err: Error) {
     index_set: bool
     res.scale = 1
@@ -1148,7 +1150,7 @@ normal_texture_info_parse :: proc(object: json.Object) -> (res: Material_Normal_
     return res, nil
 }
 
-@(require_results)
+
 occlusion_texture_info_parse :: proc(object: json.Object) -> (res: Material_Occlusion_Texture_Info, err: Error) {
     index_set: bool
     res.strength = 1
@@ -1186,7 +1188,7 @@ occlusion_texture_info_parse :: proc(object: json.Object) -> (res: Material_Occl
     return res, nil
 }
 
-@(require_results)
+
 pbr_metallic_roughness_parse :: proc(object: json.Object) -> (res: Material_Metallic_Roughness, err: Error) {
     res.base_color_factor = {1, 1, 1, 1}
     res.metallic_factor  = 1
@@ -1231,14 +1233,14 @@ pbr_metallic_roughness_parse :: proc(object: json.Object) -> (res: Material_Meta
 /*
     Meshes parsing
 */
-@(require_results)
+
 meshes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Mesh, err: Error) {
     if MESHES_KEY not_in object {
         return
     }
 
     meshes_array := object[MESHES_KEY].(json.Array)
-    res = make([]Mesh, len(meshes_array), allocator)
+    res, _ = make([]Mesh, len(meshes_array), allocator)
 
     for mesh, idx in meshes_array {
         for k, v in mesh.(json.Object) {
@@ -1251,7 +1253,7 @@ meshes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []M
                 res[idx].primitives = mesh_primitives_parse(v.(json.Array), allocator) or_return
 
             case "weights":
-                res[idx].weights = make([]Number, len(v.(json.Array)), allocator)
+                res[idx].weights, _ = make([]Number, len(v.(json.Array)), allocator)
                 for num, i in v.(json.Array) {
                     res[idx].weights[i] = Number(num.(f64))
                 }
@@ -1279,9 +1281,9 @@ meshes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []M
     return res, nil
 }
 
-@(require_results)
+
 mesh_primitives_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Mesh_Primitive, err: Error) {
-    res = make([]Mesh_Primitive, len(array), allocator)
+    res, _ = make([]Mesh_Primitive, len(array), allocator)
 
     for primitive, idx in array {
         res[idx].mode = .Triangles
@@ -1332,7 +1334,7 @@ mesh_primitives_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (r
 }
 
 
-@(require_results)
+
 mesh_targets_parse :: proc(object: json.Object) -> (res: []Mesh_Target, err: Error) {
     unimplemented(#procedure)
 }
@@ -1340,14 +1342,14 @@ mesh_targets_parse :: proc(object: json.Object) -> (res: []Mesh_Target, err: Err
 /*
     Nodes parsing
 */
-@(require_results)
+
 nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Node, err: Error) {
     if NODES_KEY not_in object {
         return
     }
 
     nodes_array := object[NODES_KEY].(json.Array)
-    res = make([]Node, len(nodes_array), allocator)
+    res, _ = make([]Node, len(nodes_array), allocator)
 
     for node, idx in nodes_array {
         res[idx].mat = Matrix4(1)
@@ -1360,7 +1362,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
                 res[idx].camera = Integer(v.(f64))
 
             case "children":
-                res[idx].children = make([]Integer, len(v.(json.Array)), allocator)
+                res[idx].children, _ = make([]Integer, len(v.(json.Array)), allocator)
                 for child, i in v.(json.Array) {
                     res[idx].children[i] = Integer(child.(f64))
                 }
@@ -1402,7 +1404,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
                 }
 
             case "weights":
-                res[idx].weights = make([]Number, len(v.(json.Array)), allocator)
+                res[idx].weights, _ = make([]Number, len(v.(json.Array)), allocator)
                 for weight, i in v.(json.Array) {
                     res[idx].weights[i] = Number(weight.(f64))
                 }
@@ -1424,14 +1426,14 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
 /*
     Samplers parsing
 */
-@(require_results)
+
 samplers_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Sampler, err: Error) {
     if SAMPLERS_KEY not_in object {
         return
     }
 
     samplers_array := object[SAMPLERS_KEY].(json.Array)
-    res = make([]Sampler, len(samplers_array), allocator)
+    res, _ = make([]Sampler, len(samplers_array), allocator)
 
     for sampler, idx in samplers_array {
         res[idx].wrapS = .Repeat
@@ -1473,20 +1475,20 @@ samplers_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: [
 /*
     Scenes parsing
 */
-@(require_results)
+
 scenes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Scene, err: Error) {
     if SCENES_KEY not_in object {
         return
     }
 
     scenes_array := object[SCENES_KEY].(json.Array)
-    res = make([]Scene, len(scenes_array), allocator)
+    res, _ = make([]Scene, len(scenes_array), allocator)
 
     for scene, idx in scenes_array {
         for k, v in scene.(json.Object) {
             switch k {
             case "nodes":
-                res[idx].nodes = make([]Integer, len(v.(json.Array)), allocator)
+                res[idx].nodes, _ = make([]Integer, len(v.(json.Array)), allocator)
                 for node, i in v.(json.Array) {
                     res[idx].nodes[i] = Integer(node.(f64))
                 }
@@ -1519,7 +1521,7 @@ skins_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Sk
     }
 
     skins_array := object[SKINS_KEY].(json.Array)
-    res = make([]Skin, len(skins_array), allocator)
+    res, _ = make([]Skin, len(skins_array), allocator)
 
     for skin, idx in skins_array {
         for k, v in skin.(json.Object) {
@@ -1529,7 +1531,7 @@ skins_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Sk
 
             case "joints":
                 // Required
-                res[idx].joints = make([]Integer, len(v.(json.Array)), allocator)
+                res[idx].joints, _ = make([]Integer, len(v.(json.Array)), allocator)
                 for joint, i in v.(json.Array) {
                     res[idx].joints[i] = Integer(joint.(f64))
                 }
@@ -1564,14 +1566,14 @@ skins_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Sk
 /*
     Textures parsing
 */
-@(require_results)
+
 textures_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Texture, err: Error) {
     if TEXTURES_KEY not_in object {
         return
     }
 
     textures_array := object[TEXTURES_KEY].(json.Array)
-    res = make([]Texture, len(textures_array), allocator)
+    res, _ = make([]Texture, len(textures_array), allocator)
 
     for texture, idx in textures_array {
         for k, v in texture.(json.Object) {
@@ -1601,7 +1603,7 @@ textures_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: [
 }
 
 
-@(require_results)
+
 texture_info_parse :: proc(object: json.Object) -> (res: Texture_Info, err: Error) {
     index_set: bool
     for k, v in object {

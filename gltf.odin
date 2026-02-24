@@ -1,11 +1,9 @@
-package gltf2
-
 import "core:encoding/base64"
 import "core:encoding/json"
 import "core:fmt"
 import "base:runtime"
 import "core:mem"
-import os "core:os/os2"
+import "core:os"
 
 import "core:strconv"
 import "core:strings"

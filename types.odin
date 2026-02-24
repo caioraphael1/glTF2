@@ -1,5 +1,3 @@
-package gltf2
-
 import "core:encoding/json"
 
 // odinfmt: disable

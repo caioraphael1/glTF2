@@ -26,9 +26,9 @@ case [][4]i16:
 }
 ```                           
 */
-package gltf2
+import "core:fmt"
 
-import "core:mem"
+// import "core:mem"
 
 // All accessor type and component type combinations
 Buffer_Slice :: union {

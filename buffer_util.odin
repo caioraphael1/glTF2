@@ -26,9 +26,10 @@ case [][4]i16:
 }
 ```                           
 */
+import "base:internal"
+
 import "core:fmt"
 
-// import "core:mem"
 
 // All accessor type and component type combinations
 Buffer_Slice :: union {
@@ -78,26 +79,27 @@ Buffer_Slice :: union {
 
 buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
     accessor := data.accessors[accessor_index]
-    assert(accessor.buffer_view != nil, "buf_iter_make: selected accessor doesn't have buffer_view")
+    internal.assert(accessor.buffer_view != nil, "buf_iter_make: selected accessor doesn't have buffer_view")
 
     buffer_view := data.buffer_views[accessor.buffer_view.?]
 
     if _, ok := accessor.sparse.?; ok {
-        assert(false, "Sparse not supported")
+        internal.assert(false, "Sparse not supported")
         return nil
     }
 
-    if _, ok := buffer_view.byte_stride.?; ok {
-        assert(false, "Cannot use a stride")
-        return nil
-    }
+    // if _, ok := buffer_view.byte_stride.?; ok {  // eu inverti essa condicional.
+    //     fmt.printfln("buffer_view: %#v", buffer_view)
+    //     internal.assert(false, "Cannot use a stride")
+    //     return nil
+    // }
 
     start_byte := accessor.byte_offset + buffer_view.byte_offset
     uri := data.buffers[buffer_view.buffer].uri
 
     switch v in uri {
     case string:
-        assert(false, "URI is string")
+        internal.assert(false, "URI is string")
         return nil
     case []byte:
         start_ptr: rawptr = &v[start_byte]

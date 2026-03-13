@@ -108,7 +108,7 @@ parse :: proc(file_content: []byte, opt := Options{}, allocator: mem.Allocator) 
         content_index += u32(json_header.length)
     }
 
-    json_parser := json.make_parser(json_data, allocator = allocator)
+    json_parser := json.parser_create(json_data, allocator = allocator)
     parsed_object, json_err := json.parse_object(&json_parser)
     data.json_value = parsed_object
     if json_err != .None && json_err != .EOF {

@@ -2,11 +2,11 @@ import "base:internal"
 import "base:intrinsics"
 import "base:mem"
 import "base:mem/allocators"
-import "base:slice"
-import "base:strings"
+import "base:container/slice"
+import "base:container/strings"
+import "base:strconv"
 
 import "core:fmt"
-import "core:strconv"
 import "core:encoding/base64"
 import "core:encoding/json"
 import "core:os"
@@ -127,7 +127,7 @@ parse :: proc(file_content: []byte, opt := Options{}, allocator: mem.Allocator) 
     data.nodes        = nodes_parse(parsed_object.(json.Object),        allocator) or_return
     data.samplers     = samplers_parse(parsed_object.(json.Object),     allocator) or_return
     if scene, ok := parsed_object.(json.Object)[SCENE_KEY]; ok {
-        data.scene = Integer(scene.(f64))
+        data.scene = Unsigned_Integer(scene.(f64))
     }
     data.scenes       = scenes_parse(parsed_object.(json.Object),      allocator) or_return
     data.skins        = skins_parse(parsed_object.(json.Object),       allocator) or_return
@@ -142,11 +142,11 @@ parse :: proc(file_content: []byte, opt := Options{}, allocator: mem.Allocator) 
     }
 
     // Load remaining binary chunks.
-    for buf_idx := 0; opt.is_glb && buf_idx < len(data.buffers) && int(content_index) < len(file_content); buf_idx += 1 {
+    for buf_idx: uint; opt.is_glb && buf_idx < len(data.buffers) && uint(content_index) < len(file_content); buf_idx += 1 {
         chunk_header := (cast(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + GLB_CHUNK_HEADER_SIZE])))
         content_index += GLB_CHUNK_HEADER_SIZE
 
-        data.buffers[buf_idx].uri, _ = slice.create([]byte, chunk_header.length, allocator)
+        data.buffers[buf_idx].uri, _ = slice.create([]byte, uint(chunk_header.length), allocator)
         intrinsics.mem_copy(raw_data(data.buffers[buf_idx].uri.([]byte)), raw_data(file_content[content_index:]), int(chunk_header.length))
         content_index += u32(chunk_header.length)
     }
@@ -183,8 +183,8 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     }
 
     str_data := uri.(string)
-    type_idx := strings_tools.index_rune(str_data, ':')
-    if type_idx == -1 {
+    type_idx, found := strings_tools.index_rune(str_data, ':')
+    if !found {
         // Check if this is possible file and if so load it
         bytes, err := os.read_entire_file_from_path(fmt.tprintf("%s/%s", gltf_dir, str_data), allocator)
         if err != nil {
@@ -196,16 +196,16 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     type := str_data[:type_idx]
     switch type {
     case "data":
-        encoding_start_idx := strings_tools.index_rune(str_data, ';') + 1
-        if encoding_start_idx == 0 {
+        encoding_start_idx, start_found := strings_tools.index_rune(str_data, ';')
+        if !start_found {
             return uri
         }
-        encoding_end_idx := strings_tools.index_rune(str_data, ',')
-        if encoding_end_idx == -1 {
+        encoding_end_idx, end_found := strings_tools.index_rune(str_data, ',')
+        if !end_found {
             return uri
         }
 
-        encoding := str_data[encoding_start_idx:encoding_end_idx]
+        encoding := str_data[encoding_start_idx + 1:encoding_end_idx]
 
         switch encoding {
         case "base64":
@@ -219,7 +219,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
 
 
 @(private)
-warning_unexpected_data :: proc(proc_name, key: string, val: json.Value, idx := 0) {
+warning_unexpected_data :: proc(proc_name, key: string, val: json.Value, idx: uint = 0) {
     fmt.printf("WARINING: Unexpected data in proc: %v at index: %v\nKey: %v, valalue: %v\n", proc_name, idx, key, val)
 }
 
@@ -295,10 +295,10 @@ accessors_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
         for k, v in access.(json.Object) {
             switch k {
             case "bufferView":
-                res[idx].buffer_view = Integer(v.(f64))
+                res[idx].buffer_view = Unsigned_Integer(v.(f64))
 
             case "byteOffset":
-                res[idx].byte_offset = Integer(v.(f64))
+                res[idx].byte_offset = Unsigned_Integer(v.(f64))
 
             case "componentType":
                 // Required
@@ -310,7 +310,7 @@ accessors_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
 
             case "count":
                 // Required
-                res[idx].count = Integer(v.(f64))
+                res[idx].count = Unsigned_Integer(v.(f64))
                 count_set = true
 
             case "type":
@@ -447,12 +447,12 @@ sparse_indices_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (re
             switch k {
             case "bufferView":
                 // Required
-                res[idx].buffer_view = Integer(v.(f64))
+                res[idx].buffer_view = Unsigned_Integer(v.(f64))
                 buffer_view_set = true
 
             case "byteOffset":
                 // Default 0
-                res[idx].byte_offset = Integer(v.(f64))
+                res[idx].byte_offset = Unsigned_Integer(v.(f64))
 
             case "componentType":
                 // Required
@@ -502,12 +502,12 @@ sparse_values_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res
             switch k {
             case "bufferView":
                 // Required
-                res[idx].buffer_view = Integer(v.(f64))
+                res[idx].buffer_view = Unsigned_Integer(v.(f64))
                 buffer_view_set = true
 
             case "byteOffset":
                 // Defalt 0
-                res[idx].byte_offset = Integer(v.(f64))
+                res[idx].byte_offset = Unsigned_Integer(v.(f64))
 
             case EXTENSIONS_KEY:
                 res[idx].extensions = v
@@ -593,7 +593,7 @@ animation_channels_parse :: proc(array: json.Array, allocator: mem.Allocator) ->
             switch k {
             case "sampler":
                 // Required
-                res[idx].sampler = Integer(v.(f64))
+                res[idx].sampler = Unsigned_Integer(v.(f64))
                 sampler_set = true
 
             case "target":
@@ -632,7 +632,7 @@ animation_channel_target_parse :: proc(object: json.Object) -> (res: Animation_C
     for k, v in object {
         switch k {
         case "node":
-            res.node = Integer(v.(f64))
+            res.node = Unsigned_Integer(v.(f64))
 
         case "path":
             // Required
@@ -681,7 +681,7 @@ animation_samplers_parse :: proc(array: json.Array, allocator: mem.Allocator) ->
             switch k {
             case "input":
                 // Required
-                res[idx].input = Integer(v.(f64))
+                res[idx].input = Unsigned_Integer(v.(f64))
                 input_set = true
 
             case "interpolation":
@@ -700,7 +700,7 @@ animation_samplers_parse :: proc(array: json.Array, allocator: mem.Allocator) ->
 
             case "output":
                 // Required
-                res[idx].output = Integer(v.(f64))
+                res[idx].output = Unsigned_Integer(v.(f64))
                 output_set = true
 
             case EXTENSIONS_KEY:
@@ -745,7 +745,7 @@ buffers_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Allo
             switch k {
             case "byteLength":
                 // Required
-                res[idx].byte_length = Integer(v.(f64))
+                res[idx].byte_length = Unsigned_Integer(v.(f64))
                 byte_length_set = true
 
             case "name":
@@ -797,19 +797,19 @@ buffer_views_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (re
             switch k {
             case "buffer":
                 // Required
-                res[idx].buffer = Integer(v.(f64))
+                res[idx].buffer = Unsigned_Integer(v.(f64))
                 buffer_set = true
 
             case "byteLength":
                 // Required
-                res[idx].byte_length = Integer(v.(f64))
+                res[idx].byte_length = Unsigned_Integer(v.(f64))
                 byte_length_set = true
 
             case "byteOffset":
-                res[idx].byte_offset = Integer(v.(f64))
+                res[idx].byte_offset = Unsigned_Integer(v.(f64))
 
             case "byteStride":
-                res[idx].byte_stride = Integer(v.(f64))
+                res[idx].byte_stride = Unsigned_Integer(v.(f64))
 
             case "name":
                 res[idx].name = v.(string)
@@ -1004,7 +1004,7 @@ images_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Alloc
         for k, v in image.(json.Object) {
             switch k {
             case "bufferView":
-                res[idx].buffer_view = Integer(v.(f64))
+                res[idx].buffer_view = Unsigned_Integer(v.(f64))
 
             case "mimeType":
                 switch v.(string) {
@@ -1123,12 +1123,12 @@ normal_texture_info_parse :: proc(object: json.Object) -> (res: Material_Normal_
         switch k {
         case "index":
             // Required
-            res.index = Integer(v.(f64))
+            res.index = Unsigned_Integer(v.(f64))
             index_set = true
 
         case "texCoord":
             // Default 0
-            res.tex_coord = Integer(v.(f64))
+            res.tex_coord = Unsigned_Integer(v.(f64))
 
         case "scale":
             // Default 1
@@ -1161,12 +1161,12 @@ occlusion_texture_info_parse :: proc(object: json.Object) -> (res: Material_Occl
         switch k {
         case "index":
             // Required
-            res.index = Integer(v.(f64))
+            res.index = Unsigned_Integer(v.(f64))
             index_set = true
 
         case "texCoord":
             // Default 0
-            res.tex_coord = Integer(v.(f64))
+            res.tex_coord = Unsigned_Integer(v.(f64))
 
         case "strength":
             // Default 1
@@ -1295,14 +1295,14 @@ mesh_primitives_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (r
             case "attributes":
                 // Required
                 for k, v in val.(json.Object) {
-                    res[idx].attributes[k] = Integer(v.(f64))
+                    res[idx].attributes[k] = Unsigned_Integer(v.(f64))
                 }
 
             case "indices":
-                res[idx].indices = Integer(val.(f64))
+                res[idx].indices = Unsigned_Integer(val.(f64))
 
             case "material":
-                res[idx].material = Integer(val.(f64))
+                res[idx].material = Unsigned_Integer(val.(f64))
 
             case "mode":
                 // Default Triangles(4)
@@ -1361,12 +1361,12 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
         for k, v in node.(json.Object) {
             switch k {
             case "camera":
-                res[idx].camera = Integer(v.(f64))
+                res[idx].camera = Unsigned_Integer(v.(f64))
 
             case "children":
-                res[idx].children, _ = slice.create([]Integer, len(v.(json.Array)), allocator)
+                res[idx].children, _ = slice.create([]Unsigned_Integer, len(v.(json.Array)), allocator)
                 for child, i in v.(json.Array) {
-                    res[idx].children[i] = Integer(child.(f64))
+                    res[idx].children[i] = Unsigned_Integer(child.(f64))
                 }
 
             case "matrix":
@@ -1377,7 +1377,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
                 }
 
             case "mesh":
-                res[idx].mesh = Integer(v.(f64))
+                res[idx].mesh = Unsigned_Integer(v.(f64))
 
             case "name":
                 res[idx].name = v.(string)
@@ -1389,7 +1389,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
                 }
 
             case "skin":
-                res[idx].skin = Integer(v.(f64))
+                res[idx].skin = Unsigned_Integer(v.(f64))
 
             case "rotation":
                 // Default [0, 0, 0, 1]
@@ -1490,9 +1490,9 @@ scenes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []S
         for k, v in scene.(json.Object) {
             switch k {
             case "nodes":
-                res[idx].nodes, _ = slice.create([]Integer, len(v.(json.Array)), allocator)
+                res[idx].nodes, _ = slice.create([]Unsigned_Integer, len(v.(json.Array)), allocator)
                 for node, i in v.(json.Array) {
-                    res[idx].nodes[i] = Integer(node.(f64))
+                    res[idx].nodes[i] = Unsigned_Integer(node.(f64))
                 }
 
             case "name":
@@ -1529,20 +1529,20 @@ skins_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Sk
         for k, v in skin.(json.Object) {
             switch k {
             case "inverseBindMatrices":
-                res[idx].inverse_bind_matrices = Integer(v.(f64))
+                res[idx].inverse_bind_matrices = Unsigned_Integer(v.(f64))
 
             case "joints":
                 // Required
-                res[idx].joints, _ = slice.create([]Integer, len(v.(json.Array)), allocator)
+                res[idx].joints, _ = slice.create([]Unsigned_Integer, len(v.(json.Array)), allocator)
                 for joint, i in v.(json.Array) {
-                    res[idx].joints[i] = Integer(joint.(f64))
+                    res[idx].joints[i] = Unsigned_Integer(joint.(f64))
                 }
 
             case "name":
                 res[idx].name = v.(string)
 
             case "skeleton":
-                res[idx].skeleton = Integer(v.(f64))
+                res[idx].skeleton = Unsigned_Integer(v.(f64))
 
             case EXTENSIONS_KEY:
                 res[idx].extensions = v
@@ -1581,10 +1581,10 @@ textures_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: [
         for k, v in texture.(json.Object) {
             switch k {
             case "sampler":
-                res[idx].sampler = Integer(v.(f64))
+                res[idx].sampler = Unsigned_Integer(v.(f64))
 
             case "source":
-                res[idx].source = Integer(v.(f64))
+                res[idx].source = Unsigned_Integer(v.(f64))
 
             case "name":
                 res[idx].name = v.(string)
@@ -1612,12 +1612,12 @@ texture_info_parse :: proc(object: json.Object) -> (res: Texture_Info, err: Erro
         switch k {
         case "index":
             //Required
-            res.index = Integer(v.(f64))
+            res.index = Unsigned_Integer(v.(f64))
             index_set = true
 
         case "texCoord":
             // Default 0
-            res.tex_coord = Integer(v.(f64))
+            res.tex_coord = Unsigned_Integer(v.(f64))
 
         case EXTENSIONS_KEY:
             res.extensions = v

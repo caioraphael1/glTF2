@@ -77,7 +77,7 @@ Buffer_Slice :: union {
     []matrix[4, 4]f32,
 }
 
-buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
+buffer_slice :: proc(data: ^Data, accessor_index: Unsigned_Integer) -> Buffer_Slice {
     accessor := data.accessors[accessor_index]
     internal.assert(accessor.buffer_view != nil, "buf_iter_make: selected accessor doesn't have buffer_view")
 

@@ -30,7 +30,7 @@ Add following line when compiling to change type of `Number` from f32 to f64:
 */
 GLTF_DOUBLE_PRECISION :: #config(GLTF_DOUBLE_PRECISION, false)
 
-Integer :: u32
+Unsigned_Integer :: u32
 Number :: f64 when GLTF_DOUBLE_PRECISION else f32
 Matrix4 :: matrix[4, 4]Number
 Quaternion :: quaternion256 when GLTF_DOUBLE_PRECISION else quaternion128
@@ -64,7 +64,7 @@ Data :: struct {
     meshes:              []Mesh,
     nodes:               []Node,
     samplers:            []Sampler,
-    scene:               internal.Maybe(Integer),
+    scene:               internal.Maybe(Unsigned_Integer),
     scenes:              []Scene,
     skins:               []Skin,
     textures:            []Texture,
@@ -93,7 +93,7 @@ GLTF_Error :: struct {
 
 GLTF_Param_Error :: struct {
     name:  string,
-    index: int,
+    index: uint,
 }
 
 Error_Type :: enum {
@@ -147,12 +147,12 @@ Uri :: union {
     Accessor related data structures
 */
 Accessor :: struct {
-    byte_offset:    Integer,
+    byte_offset:    Unsigned_Integer,
     component_type: Component_Type, // Required
     normalized:     bool,
-    count:          Integer, // Required
+    count:          Unsigned_Integer, // Required
     type:           Accessor_Type, // Required
-    buffer_view:    internal.Maybe(Integer),
+    buffer_view:    internal.Maybe(Unsigned_Integer),
     max, min:       internal.Maybe([16]Number),
     name:           internal.Maybe(string),
     sparse:         internal.Maybe(Accessor_Sparse),
@@ -171,7 +171,7 @@ Accessor_Type :: enum {
 }
 
 Accessor_Sparse :: struct {
-    //count: Integer, // Required
+    //count: Unsigned_Integer, // Required
     indices:    []Accessor_Sparse_Indices, // Required
     values:     []Accessor_Sparse_Values, // Required
     extensions: Extensions,
@@ -179,16 +179,16 @@ Accessor_Sparse :: struct {
 }
 
 Accessor_Sparse_Indices :: struct {
-    buffer_view:    Integer, // Required
-    byte_offset:    Integer,
+    buffer_view:    Unsigned_Integer, // Required
+    byte_offset:    Unsigned_Integer,
     component_type: Component_Type, // Required
     extensions:     Extensions,
     extras:         Extras,
 }
 
 Accessor_Sparse_Values :: struct {
-    buffer_view: Integer, // Required
-    byte_offset: Integer,
+    buffer_view: Unsigned_Integer, // Required
+    byte_offset: Unsigned_Integer,
     extensions:  Extensions,
     extras:      Extras,
 }
@@ -206,7 +206,7 @@ Animation :: struct {
 }
 
 Animation_Channel :: struct {
-    sampler:    Integer, // Required
+    sampler:    Unsigned_Integer, // Required
     target:     Animation_Channel_Target, // Required
     extensions: Extensions,
     extras:     Extras,
@@ -214,13 +214,13 @@ Animation_Channel :: struct {
 
 Animation_Channel_Target :: struct {
     path:       Animation_Channel_Path, // Required
-    node:       internal.Maybe(Integer),
+    node:       internal.Maybe(Unsigned_Integer),
     extensions: Extensions,
     extras:     Extras,
 }
 
 Animation_Sampler :: struct {
-    input, output: Integer, // Required
+    input, output: Unsigned_Integer, // Required
     interpolation: Interpolation_Algorithm, // Default: Linear
     extensions:    Extensions,
     extras:        Extras,
@@ -243,7 +243,7 @@ Animation_Channel_Path :: enum {
     Buffer related data structures
 */
 Buffer :: struct {
-    byte_length: Integer,
+    byte_length: Unsigned_Integer,
     name:        internal.Maybe(string),
     uri:         Uri,
     extensions:  Extensions,
@@ -251,8 +251,8 @@ Buffer :: struct {
 }
 
 Buffer_View :: struct {
-    buffer, byte_offset, byte_length: Integer,
-    byte_stride:                      internal.Maybe(Integer),
+    buffer, byte_offset, byte_length: Unsigned_Integer,
+    byte_stride:                      internal.Maybe(Unsigned_Integer),
     target:                           internal.Maybe(Buffer_Type_Hint),
     name:                             internal.Maybe(string),
     extensions:                       Extensions,
@@ -300,7 +300,7 @@ Image :: struct {
     name:        internal.Maybe(string),
     uri:         Uri,
     type:        internal.Maybe(Image_Type),
-    buffer_view: internal.Maybe(Integer),
+    buffer_view: internal.Maybe(Unsigned_Integer),
     extensions:  Extensions,
     extras:      Extras,
 }
@@ -344,14 +344,14 @@ Material_Metallic_Roughness :: struct {
 }
 
 Material_Normal_Texture_Info :: struct {
-    index, tex_coord: Integer,
+    index, tex_coord: Unsigned_Integer,
     scale:            Number, // Default 1
     extensions:       Extensions,
     extras:           Extras,
 }
 
 Material_Occlusion_Texture_Info :: struct {
-    index, tex_coord: Integer,
+    index, tex_coord: Unsigned_Integer,
     strength:         Number, // Default 1
     extensions:       Extensions,
     extras:           Extras,
@@ -370,9 +370,9 @@ Mesh :: struct {
 }
 
 Mesh_Primitive :: struct {
-    attributes:        map[string]Integer, // Required
+    attributes:        map[string]Unsigned_Integer, // Required
     mode:              Mesh_Primitive_Mode, // Default Triangles(4)
-    indices, material: internal.Maybe(Integer),
+    indices, material: internal.Maybe(Unsigned_Integer),
     targets:           []Mesh_Target,
     extensions:        Extensions,
     extras:            Extras,
@@ -391,7 +391,7 @@ Mesh_Primitive_Mode :: enum {
 // TODO: Verify if this is correct
 Mesh_Target :: struct {
     type:  Mesh_Target_Type,
-    index: Integer,
+    index: Unsigned_Integer,
     data:  Accessor,
     name:  string,
 }
@@ -418,8 +418,8 @@ Node :: struct {
     rotation:           Quaternion, // Default [x = 0, y = 0, z = 0, w = 1]
     scale:              [3]Number, // Default [1, 1, 1]
     translation:        [3]Number,
-    camera, mesh, skin: internal.Maybe(Integer),
-    children:           []Integer,
+    camera, mesh, skin: internal.Maybe(Unsigned_Integer),
+    children:           []Unsigned_Integer,
     name:               internal.Maybe(string),
     weights:            []Number,
     extensions:         Extensions,
@@ -464,7 +464,7 @@ Minification_Filter :: enum u16 {
     Scene data structure
 */
 Scene :: struct {
-    nodes:      []Integer,
+    nodes:      []Unsigned_Integer,
     name:       internal.Maybe(string),
     extensions: Extensions,
     extras:     Extras,
@@ -475,8 +475,8 @@ Scene :: struct {
     Skin data structure
 */
 Skin :: struct {
-    joints:                          []Integer, // Required
-    inverse_bind_matrices, skeleton: internal.Maybe(Integer),
+    joints:                          []Unsigned_Integer, // Required
+    inverse_bind_matrices, skeleton: internal.Maybe(Unsigned_Integer),
     name:                            internal.Maybe(string),
     extensions:                      Extensions,
     extras:                          Extras,
@@ -487,14 +487,14 @@ Skin :: struct {
     Texture related data structures
 */
 Texture :: struct {
-    sampler, source: internal.Maybe(Integer),
+    sampler, source: internal.Maybe(Unsigned_Integer),
     name:            internal.Maybe(string),
     extensions:      Extensions,
     extras:          Extras,
 }
 
 Texture_Info :: struct {
-    index, tex_coord: Integer,
+    index, tex_coord: Unsigned_Integer,
     extensions:       Extensions,
     extras:           Extras,
 }

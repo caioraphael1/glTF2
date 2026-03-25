@@ -28,7 +28,7 @@ case [][4]i16:
 */
 import "base:internal"
 
-import "core:fmt"
+// import "core:fmt"
 
 
 // All accessor type and component type combinations

@@ -3,7 +3,7 @@ import "base:intrinsics"
 import "base:mem"
 import "base:mem/allocators"
 import "base:container/slice"
-import "base:container/strings"
+import "base:container/dyn_array"
 import "base:strconv"
 
 import "core:fmt"
@@ -164,9 +164,9 @@ extensions_names_parse :: proc(object: json.Object, name: string, allocator: mem
     }
 
     name_array := object[name].(json.Array)
-    res, _ = slice.create([]string, len(name_array), allocator)
+    res, _ = slice.create([]string, name_array.len, allocator)
 
-    for n, i in name_array {
+    for n, i in dyn_array.slice(&name_array) {
         res[i] = n.(string)
     }
 
@@ -287,9 +287,9 @@ accessors_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
     }
 
     accessor_array := object[ACCESSORS_KEY].(json.Array)
-    res, _ = slice.create([]Accessor, len(accessor_array), allocator)
+    res, _ = slice.create([]Accessor, accessor_array.len, allocator)
 
-    for access, idx in accessor_array {
+    for access, idx in dyn_array.slice(&accessor_array) {
         component_type_set, count_set, type_set: bool
 
         for k, v in access.(json.Object) {
@@ -351,14 +351,16 @@ accessors_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
 
             case "max":
                 max: [16]Number
-                for num, i in v.(json.Array) {
+                dyn_arr := v.(json.Array)
+                for num, i in dyn_array.slice(&dyn_arr) {
                     max[i] = Number(num.(f64))
                 }
                 res[idx].max = max
 
             case "min":
                 min: [16]Number
-                for num, i in v.(json.Array) {
+                dyn_arr := v.(json.Array)
+                for num, i in dyn_array.slice(&dyn_arr) {
                     min[i] = Number(num.(f64))
                 }
                 res[idx].min = min
@@ -438,9 +440,9 @@ accessor_sparse_parse :: proc(object: json.Object, allocator: mem.Allocator) -> 
 
 
 sparse_indices_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Accessor_Sparse_Indices, err: Error) {
-    res, _ = slice.create([]Accessor_Sparse_Indices, len(array), allocator)
+    res, _ = slice.create([]Accessor_Sparse_Indices, array.len, allocator)
 
-    for index, idx in array {
+    for index, idx in array.data[:array.len] {
         buffer_view_set, component_type_set: bool
 
         for k, v in index.(json.Object) {
@@ -493,9 +495,9 @@ sparse_indices_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (re
 
 
 sparse_values_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Accessor_Sparse_Values, err: Error) {
-    res, _ = slice.create([]Accessor_Sparse_Values, len(array), allocator)
+    res, _ = slice.create([]Accessor_Sparse_Values, array.len, allocator)
 
-    for value, idx in array {
+    for value, idx in array.data[:array.len] {
         buffer_view_set: bool
 
         for k, v in value.(json.Object) {
@@ -543,9 +545,9 @@ animations_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res:
     }
 
     animations_array := object[ANIMATIONS_KEY].(json.Array)
-    res, _ = slice.create([]Animation, len(animations_array), allocator)
+    res, _ = slice.create([]Animation, animations_array.len, allocator)
 
-    for animation, idx in animations_array {
+    for animation, idx in dyn_array.slice(&animations_array) {
         for k, v in animation.(json.Object) {
             switch k {
             case "channels":
@@ -584,9 +586,9 @@ animations_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res:
 
 
 animation_channels_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Animation_Channel, err: Error) {
-    res, _ = slice.create([]Animation_Channel, len(array), allocator)
+    res, _ = slice.create([]Animation_Channel, array.len, allocator)
 
-    for channel, idx in array {
+    for channel, idx in array.data[:array.len] {
         sampler_set, target_set: bool
 
         for k, v in channel.(json.Object) {
@@ -672,9 +674,9 @@ animation_channel_target_parse :: proc(object: json.Object) -> (res: Animation_C
 
 
 animation_samplers_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Animation_Sampler, err: Error) {
-    res, _ = slice.create([]Animation_Sampler, len(array), allocator)
+    res, _ = slice.create([]Animation_Sampler, array.len, allocator)
 
-    for sampler, idx in array {
+    for sampler, idx in array.data[:array.len] {
         input_set, output_set: bool
 
         for k, v in sampler.(json.Object) {
@@ -736,9 +738,9 @@ buffers_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Allo
     }
 
     buffers_array := object[BUFFERS_KEY].(json.Array)
-    res, _ = slice.create([]Buffer, len(buffers_array), allocator)
+    res, _ = slice.create([]Buffer, buffers_array.len, allocator)
 
-    for buffer, idx in buffers_array {
+    for buffer, idx in dyn_array.slice(&buffers_array) {
         byte_length_set: bool
 
         for k, v in buffer.(json.Object) {
@@ -788,9 +790,9 @@ buffer_views_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (re
     }
 
     views_array := object[BUFFER_VIEWS_KEY].(json.Array)
-    res, _ = slice.create([]Buffer_View, len(views_array), allocator)
+    res, _ = slice.create([]Buffer_View, views_array.len, allocator)
 
-    for view, idx in views_array {
+    for view, idx in dyn_array.slice(&views_array) {
         buffer_set, byte_length_set: bool
 
         for k, v in view.(json.Object) {
@@ -855,9 +857,9 @@ cameras_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []
     }
 
     cameras_array := object[CAMERAS_KEY].(json.Array)
-    res, _ = slice.create([]Camera, len(cameras_array), allocator)
+    res, _ = slice.create([]Camera, cameras_array.len, allocator)
 
-    for camera, idx in cameras_array {
+    for camera, idx in dyn_array.slice(&cameras_array) {
         for k, v in camera.(json.Object) {
             switch k {
             case "name":
@@ -998,9 +1000,9 @@ images_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Alloc
     }
 
     images_array := object[IMAGES_KEY].(json.Array)
-    res, _ = slice.create([]Image, len(images_array), allocator)
+    res, _ = slice.create([]Image, images_array.len, allocator)
 
-    for image, idx in images_array {
+    for image, idx in dyn_array.slice(&images_array) {
         for k, v in image.(json.Object) {
             switch k {
             case "bufferView":
@@ -1049,9 +1051,9 @@ materials_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
     }
 
     materials_array := object[MATERIALS_KEY].(json.Array)
-    res, _ = slice.create([]Material, len(materials_array), allocator)
+    res, _ = slice.create([]Material, materials_array.len, allocator)
 
-    for material, idx in materials_array {
+    for material, idx in dyn_array.slice(&materials_array) {
         res[idx].alpha_cutoff = 0.5
 
         for k, v in material.(json.Object) {
@@ -1080,7 +1082,8 @@ materials_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
 
             case "emissiveFactor":
                 // Default [0, 0, 0]
-                for num, i in v.(json.Array) {
+                dyn_arr := v.(json.Array)
+                for num, i in dyn_array.slice(&dyn_arr) {
                     res[idx].emissive_factor[i] = Number(num.(f64))
                 }
 
@@ -1200,7 +1203,8 @@ pbr_metallic_roughness_parse :: proc(object: json.Object) -> (res: Material_Meta
         switch k {
         case "baseColorFactor":
             // Default [ 1, 1, 1, 1 ]
-            for num, i in v.(json.Array) {
+            dyn_arr := v.(json.Array)
+            for num, i in dyn_array.slice(&dyn_arr) {
                 res.base_color_factor[i] = Number(num.(f64))
             }
 
@@ -1242,9 +1246,9 @@ meshes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []M
     }
 
     meshes_array := object[MESHES_KEY].(json.Array)
-    res, _ = slice.create([]Mesh, len(meshes_array), allocator)
+    res, _ = slice.create([]Mesh, meshes_array.len, allocator)
 
-    for mesh, idx in meshes_array {
+    for mesh, idx in dyn_array.slice(&meshes_array) {
         for k, v in mesh.(json.Object) {
             switch k {
             case "name":
@@ -1255,8 +1259,9 @@ meshes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []M
                 res[idx].primitives = mesh_primitives_parse(v.(json.Array), allocator) or_return
 
             case "weights":
-                res[idx].weights, _ = slice.create([]Number, len(v.(json.Array)), allocator)
-                for num, i in v.(json.Array) {
+                res[idx].weights, _ = slice.create([]Number, (v.(json.Array)).len, allocator)
+                dyn_arr := v.(json.Array)
+                for num, i in dyn_array.slice(&dyn_arr) {
                     res[idx].weights[i] = Number(num.(f64))
                 }
 
@@ -1285,9 +1290,9 @@ meshes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []M
 
 
 mesh_primitives_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Mesh_Primitive, err: Error) {
-    res, _ = slice.create([]Mesh_Primitive, len(array), allocator)
+    res, _ = slice.create([]Mesh_Primitive, array.len, allocator)
 
-    for primitive, idx in array {
+    for primitive, idx in array.data[:array.len] {
         res[idx].mode = .Triangles
 
         for key, val in primitive.(json.Object) {
@@ -1351,9 +1356,9 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
     }
 
     nodes_array := object[NODES_KEY].(json.Array)
-    res, _ = slice.create([]Node, len(nodes_array), allocator)
+    res, _ = slice.create([]Node, nodes_array.len, allocator)
 
-    for node, idx in nodes_array {
+    for node, idx in dyn_array.slice(&nodes_array) {
         res[idx].mat = Matrix4(1)
         res[idx].rotation = Quaternion(1)
         res[idx].scale = {1, 1, 1}
@@ -1364,15 +1369,17 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
                 res[idx].camera = Unsigned_Integer(v.(f64))
 
             case "children":
-                res[idx].children, _ = slice.create([]Unsigned_Integer, len(v.(json.Array)), allocator)
-                for child, i in v.(json.Array) {
+                res[idx].children, _ = slice.create([]Unsigned_Integer, (v.(json.Array)).len, allocator)
+                dyn_arr := v.(json.Array)
+                for child, i in dyn_array.slice(&dyn_arr) {
                     res[idx].children[i] = Unsigned_Integer(child.(f64))
                 }
 
             case "matrix":
                 // Default identity matrix
                 // Matrices are stored in column-major order. Odin matrices are indexed like this [row, col]
-                for num, i in v.(json.Array) {
+                dyn_arr := v.(json.Array)
+                for num, i in dyn_array.slice(&dyn_arr) {
                     res[idx].mat[i % 4, i / 4] = Number(num.(f64))
                 }
 
@@ -1384,7 +1391,8 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
 
             case "scale":
                 // Default [1, 1, 1]
-                for num, i in v.(json.Array) {
+                dyn_arr := v.(json.Array)
+                for num, i in dyn_array.slice(&dyn_arr) {
                     res[idx].scale[i] = Number(num.(f64))
                 }
 
@@ -1394,20 +1402,24 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
             case "rotation":
                 // Default [0, 0, 0, 1]
                 rotation: [4]Number
-                for num, i in v.(json.Array) {
+
+                dyn_arr := v.(json.Array)
+                for num, i in dyn_array.slice(&dyn_arr) {
                     rotation[i] = Number(num.(f64))
                 }
                 intrinsics.mem_copy(&res[idx].rotation, &rotation, size_of(Quaternion))
 
             case "translation":
                 // Defalt [0, 0, 0]
-                for num, i in v.(json.Array) {
+                dyn_arr := v.(json.Array)
+                for num, i in dyn_array.slice(&dyn_arr) {
                     res[idx].translation[i] = Number(num.(f64))
                 }
 
             case "weights":
-                res[idx].weights, _ = slice.create([]Number, len(v.(json.Array)), allocator)
-                for weight, i in v.(json.Array) {
+                res[idx].weights, _ = slice.create([]Number, (v.(json.Array)).len, allocator)
+                dyn_arr := v.(json.Array)
+                for weight, i in dyn_array.slice(&dyn_arr) {
                     res[idx].weights[i] = Number(weight.(f64))
                 }
 
@@ -1435,9 +1447,9 @@ samplers_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: [
     }
 
     samplers_array := object[SAMPLERS_KEY].(json.Array)
-    res, _ = slice.create([]Sampler, len(samplers_array), allocator)
+    res, _ = slice.create([]Sampler, samplers_array.len, allocator)
 
-    for sampler, idx in samplers_array {
+    for sampler, idx in dyn_array.slice(&samplers_array) {
         res[idx].wrapS = .Repeat
         res[idx].wrapT = .Repeat
 
@@ -1484,14 +1496,15 @@ scenes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []S
     }
 
     scenes_array := object[SCENES_KEY].(json.Array)
-    res, _ = slice.create([]Scene, len(scenes_array), allocator)
+    res, _ = slice.create([]Scene, scenes_array.len, allocator)
 
-    for scene, idx in scenes_array {
+    for scene, idx in dyn_array.slice(&scenes_array) {
         for k, v in scene.(json.Object) {
             switch k {
             case "nodes":
-                res[idx].nodes, _ = slice.create([]Unsigned_Integer, len(v.(json.Array)), allocator)
-                for node, i in v.(json.Array) {
+                res[idx].nodes, _ = slice.create([]Unsigned_Integer, (v.(json.Array)).len, allocator)
+                dyn_arr := v.(json.Array)
+                for node, i in dyn_array.slice(&dyn_arr) {
                     res[idx].nodes[i] = Unsigned_Integer(node.(f64))
                 }
 
@@ -1523,9 +1536,9 @@ skins_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Sk
     }
 
     skins_array := object[SKINS_KEY].(json.Array)
-    res, _ = slice.create([]Skin, len(skins_array), allocator)
+    res, _ = slice.create([]Skin, skins_array.len, allocator)
 
-    for skin, idx in skins_array {
+    for skin, idx in dyn_array.slice(&skins_array) {
         for k, v in skin.(json.Object) {
             switch k {
             case "inverseBindMatrices":
@@ -1533,8 +1546,9 @@ skins_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Sk
 
             case "joints":
                 // Required
-                res[idx].joints, _ = slice.create([]Unsigned_Integer, len(v.(json.Array)), allocator)
-                for joint, i in v.(json.Array) {
+                res[idx].joints, _ = slice.create([]Unsigned_Integer, (v.(json.Array)).len, allocator)
+                dyn_arr := v.(json.Array)
+                for joint, i in dyn_array.slice(&dyn_arr) {
                     res[idx].joints[i] = Unsigned_Integer(joint.(f64))
                 }
 
@@ -1575,9 +1589,9 @@ textures_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: [
     }
 
     textures_array := object[TEXTURES_KEY].(json.Array)
-    res, _ = slice.create([]Texture, len(textures_array), allocator)
+    res, _ = slice.create([]Texture, textures_array.len, allocator)
 
-    for texture, idx in textures_array {
+    for texture, idx in dyn_array.slice(&textures_array) {
         for k, v in texture.(json.Object) {
             switch k {
             case "sampler":

@@ -139,7 +139,7 @@ Extras :: json.Value
 
 Uri :: union {
     string,
-    []byte,
+    []u8,
 }
 
 

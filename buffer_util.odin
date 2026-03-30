@@ -101,7 +101,7 @@ buffer_slice :: proc(data: ^Data, accessor_index: Unsigned_Integer) -> Buffer_Sl
     case string:
         internal.assert(false, "URI is string")
         return nil
-    case []byte:
+    case []u8:
         start_ptr: rawptr = &v[start_byte]
         switch accessor.type {
         case .Scalar:

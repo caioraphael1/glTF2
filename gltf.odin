@@ -212,9 +212,10 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
 
         switch encoding {
         case "base64":
+            // FIX: (2026-04-18) I broke this when changing to container/str
             // internal.assert(base64.decode(str_data[encoding_end_idx + 1:]))
             // return dec
-            os.panic("Not implemented yet")
+            os.panic("Not implemented yet") 
         }
     }
 

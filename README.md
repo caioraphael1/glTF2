@@ -57,7 +57,7 @@ main :: proc() {
     // Iterate over buffer elements using accessor:
     buf := gltf2.buffer_slice(data, 0).([][3]f32)
     for val, i in buf {
-        fmt.printf("Index: %v = %v\n", i, val)
+        os.printf("Index: % = %\n", i, val)
     }
 }
 ```

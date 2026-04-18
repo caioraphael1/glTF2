@@ -89,7 +89,7 @@ buffer_slice :: proc(data: ^Data, accessor_index: Unsigned_Integer) -> Buffer_Sl
     }
 
     // if _, ok := buffer_view.byte_stride.?; ok {  // eu inverti essa condicional.
-    //     fmt.printfln("buffer_view: %#v", buffer_view)
+    //     os.printfln("buffer_view: %", buffer_view)
     //     internal.assert(false, "Cannot use a stride")
     //     return nil
     // }

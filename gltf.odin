@@ -1,12 +1,11 @@
 import "base:internal"
 import "base:intrinsics"
 import "base:mem"
-import "base:mem/allocators"
+import "base:container/str"
 import "base:container/slice"
 import "base:container/dyn_array"
 import "base:strconv"
 
-import "core:fmt"
 import "core:encoding/base64"
 import "core:encoding/json"
 import "core:os"
@@ -14,7 +13,7 @@ import "core:strings_tools"
 
 
 GLB_MAGIC :: 0x46546c67
-GLB_HEADER_SIZE :: size_of(GLB_Header)
+GLB_HEADER_SIZE       :: size_of(GLB_Header)
 GLB_CHUNK_HEADER_SIZE :: size_of(GLB_Chunk_Header)
 GLTF_MIN_VERSION :: 2
 
@@ -63,8 +62,10 @@ load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^D
         delete_content = true,
         gltf_dir       = gltf_dir,
     }
-    file_name_lower, _ := strings_tools.to_lower(ext(file_name), allocators.temp_allocator)
-    switch file_name_lower {
+    new_file_name: str.String(32)
+    _ = str.set(&new_file_name, ext(file_name))
+    strings_tools.to_lower(&new_file_name)
+    switch str.str(&new_file_name) {
     case ".gltf":
         return parse(file_content, options, allocator)
     case ".glb":
@@ -88,7 +89,7 @@ parse :: proc(file_content: []u8, opt := Options{}, allocator: mem.Allocator) ->
 
     if opt.is_glb {
         header := (cast(^GLB_Header)(raw_data(file_content[:GLB_HEADER_SIZE])))
-        content_index += GLB_HEADER_SIZE
+        content_index += u32(GLB_HEADER_SIZE)
 
         switch {
         case header.magic != GLB_MAGIC:
@@ -98,12 +99,12 @@ parse :: proc(file_content: []u8, opt := Options{}, allocator: mem.Allocator) ->
         }
 
         // GLB file format expects 1 JSON chunk right after header
-        json_header := (cast(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + GLB_CHUNK_HEADER_SIZE])))
+        json_header := (cast(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + u32(GLB_CHUNK_HEADER_SIZE)])))
         if json_header.type != CHUNK_TYPE_JSON {
             return data, GLTF_Error{type = .Wrong_Chunk_Type, proc_name = #procedure, param = {name = "JSON Chunk"}}
         }
 
-        content_index += GLB_CHUNK_HEADER_SIZE
+        content_index += u32(GLB_CHUNK_HEADER_SIZE)
         json_data = file_content[content_index:content_index + u32(json_header.length)]
         content_index += u32(json_header.length)
     }
@@ -143,8 +144,8 @@ parse :: proc(file_content: []u8, opt := Options{}, allocator: mem.Allocator) ->
 
     // Load remaining binary chunks.
     for buf_idx: uint; opt.is_glb && buf_idx < len(data.buffers) && uint(content_index) < len(file_content); buf_idx += 1 {
-        chunk_header := (cast(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + GLB_CHUNK_HEADER_SIZE])))
-        content_index += GLB_CHUNK_HEADER_SIZE
+        chunk_header := (cast(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + u32(GLB_CHUNK_HEADER_SIZE)])))
+        content_index += u32(GLB_CHUNK_HEADER_SIZE)
 
         data.buffers[buf_idx].uri, _ = slice.create(u8, uint(chunk_header.length), allocator)
         intrinsics.mem_copy(raw_data(data.buffers[buf_idx].uri.([]u8)), raw_data(file_content[content_index:]), int(chunk_header.length))
@@ -186,7 +187,9 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     type_idx, found := strings_tools.index_rune(str_data, ':')
     if !found {
         // Check if this is possible file and if so load it
-        bytes, err := os.read_entire_file_from_path(fmt.tprintf("%s/%s", gltf_dir, str_data), allocator)
+        s: str.String(64)
+        internal.assert(str.setf(&s, "%/%", gltf_dir, str_data))
+        bytes, err := os.read_entire_file_from_path(str.str(&s), allocator)
         if err != nil {
             return uri
         }
@@ -209,8 +212,9 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
 
         switch encoding {
         case "base64":
-            dec, _ := base64.decode(str_data[encoding_end_idx + 1:], allocator = allocator)
-            return dec
+            // internal.assert(base64.decode(str_data[encoding_end_idx + 1:]))
+            // return dec
+            os.panic("Not implemented yet")
         }
     }
 
@@ -220,7 +224,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
 
 @(private)
 warning_unexpected_data :: proc(proc_name, key: string, val: json.Value, idx: uint = 0) {
-    fmt.printf("WARINING: Unexpected data in proc: %v at index: %v\nKey: %v, valalue: %v\n", proc_name, idx, key, val)
+    os.printfln("WARNING: Unexpected data in proc: % at index: %\nKey: %, value: %", proc_name, str.from_uint(idx), key, str.from_union(val))
 }
 
 /*

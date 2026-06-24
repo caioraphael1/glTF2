@@ -1382,7 +1382,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
 
             case "matrix":
                 // Default identity matrix
-                // Matrices are stored in column-major order. Odin matrices are indexed like this [row, col]
+                // Matrices are stored in column-major order. Dusk matrices are indexed like this [row, col]
                 dyn_arr := v.(json.Array)
                 for num, i in dyn_array.slice(dyn_arr) {
                     res[idx].mat[i % 4, i / 4] = Number(num.(f64))

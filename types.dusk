@@ -2,7 +2,7 @@ import "base:internal"
 
 import "core:encoding/json"
 
-// odinfmt: disable
+// duskfmt: disable
 @(private) ACCESSORS_KEY :: "accessors"
 @(private) ANIMATIONS_KEY :: "animations"
 @(private) ASSET_KEY :: "asset"
@@ -22,7 +22,7 @@ import "core:encoding/json"
 @(private) EXTENSIONS_REQUIRED_KEY :: "extensionsRequired"
 @(private) EXTENSIONS_USED_KEY :: "extensionsUsed"
 @(private) EXTRAS_KEY :: "extras"
-// odinfmt: enable
+// duskfmt: enable
 
 /*
 Add following line when compiling to change type of `Number` from f32 to f64:

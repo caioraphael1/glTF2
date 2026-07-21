@@ -6,6 +6,8 @@ import "base:container/slice"
 import "base:container/dyn_array"
 import "base:strconv"
 
+import "core:math/mat"
+
 import "core:encoding/base64"
 import "core:encoding/json"
 import "core:os"
@@ -1364,7 +1366,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
     res, _ = slice.create(Node, nodes_array.len, allocator)
 
     for node, idx in dyn_array.slice(nodes_array) {
-        res[idx].mat = Matrix4(1)
+        res[idx].matrix4 = mat.mat4_identity(f32)
         res[idx].rotation = { r = 1 }
         res[idx].scale = {1, 1, 1}
 
@@ -1384,8 +1386,9 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
                 // Default identity matrix
                 // Matrices are stored in column-major order. Dusk matrices are indexed like this [row, col]
                 dyn_arr := v.(json.Array)
+                mat_as_array := transmute(mat.Mat_Array(4, 4, Number))res[idx].matrix4
                 for num, i in dyn_array.slice(dyn_arr) {
-                    res[idx].mat[i % 4, i / 4] = Number(num.(f64))
+                    mat_as_array.array[i / 4][i % 4] = Number(num.(f64))
                 }
 
             case "mesh":

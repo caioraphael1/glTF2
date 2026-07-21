@@ -2,6 +2,7 @@ import "base:internal"
 import "base:container/quaternion"
 
 import "core:encoding/json"
+import "core:math/mat"
 
 // duskfmt: disable
 @(private) ACCESSORS_KEY :: "accessors"
@@ -33,7 +34,7 @@ GLTF_DOUBLE_PRECISION :: #config(GLTF_DOUBLE_PRECISION, false)
 
 Unsigned_Integer :: u32
 Number :: f64 when GLTF_DOUBLE_PRECISION else f32
-Matrix4 :: matrix[4, 4]Number
+Matrix4 :: mat.Mat4(Number)
 Quaternion :: quaternion.Quaternion(f64) when GLTF_DOUBLE_PRECISION else quaternion.Quaternion(f32)
 
 Options :: struct {
@@ -415,9 +416,9 @@ Mesh_Target_Type :: enum {
     Node data structure
 */
 Node :: struct {
-    mat:                Matrix4, // Default Identity Matrix
-    rotation:           Quaternion, // Default [x = 0, y = 0, z = 0, w = 1]
-    scale:              [3]Number, // Default [1, 1, 1]
+    matrix4:            Matrix4,    // Defaults to identity
+    rotation:           Quaternion, // Defaults to [x = 0, y = 0, z = 0, w = 1]
+    scale:              [3]Number,  // Defaults to [1, 1, 1]
     translation:        [3]Number,
     camera, mesh, skin: internal.Maybe(Unsigned_Integer),
     children:           []Unsigned_Integer,

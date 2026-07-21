@@ -28,7 +28,9 @@ case [][4]i16:
 */
 import "base:internal"
 
-import "core:math/mat"
+import "core:math/mat2"
+import "core:math/mat3"
+import "core:math/mat4"
 
 
 // All accessor type and component type combinations
@@ -57,24 +59,24 @@ Buffer_Slice :: union {
     [][4]u16,
     [][4]u32,
     [][4]f32,
-    []mat.Mat2(u8),
-    []mat.Mat2(i8),
-    []mat.Mat2(i16),
-    []mat.Mat2(u16),
-    []mat.Mat2(u32),
-    []mat.Mat2(f32),
-    []mat.Mat3(u8),
-    []mat.Mat3(i8),
-    []mat.Mat3(i16),
-    []mat.Mat3(u16),
-    []mat.Mat3(u32),
-    []mat.Mat3(f32),
-    []mat.Mat4(u8),
-    []mat.Mat4(i8),
-    []mat.Mat4(i16),
-    []mat.Mat4(u16),
-    []mat.Mat4(u32),
-    []mat.Mat4(f32),
+    []mat2.Mat2(u8),
+    []mat2.Mat2(i8),
+    []mat2.Mat2(i16),
+    []mat2.Mat2(u16),
+    []mat2.Mat2(u32),
+    []mat2.Mat2(f32),
+    []mat3.Mat3(u8),
+    []mat3.Mat3(i8),
+    []mat3.Mat3(i16),
+    []mat3.Mat3(u16),
+    []mat3.Mat3(u32),
+    []mat3.Mat3(f32),
+    []mat4.Mat4(u8),
+    []mat4.Mat4(i8),
+    []mat4.Mat4(i16),
+    []mat4.Mat4(u16),
+    []mat4.Mat4(u32),
+    []mat4.Mat4(f32),
 }
 
 buffer_slice :: proc(data: ^Data, accessor_index: Unsigned_Integer) -> Buffer_Slice {
@@ -171,49 +173,49 @@ buffer_slice :: proc(data: ^Data, accessor_index: Unsigned_Integer) -> Buffer_Sl
         case .Matrix2:
             switch accessor.component_type {
             case .Unsigned_Byte:
-                return (transmute([^]mat.Mat2(u8))start_ptr)[:accessor.count]
+                return (transmute([^]mat2.Mat2(u8))start_ptr)[:accessor.count]
             case .Byte:
-                return (transmute([^]mat.Mat2(i8))start_ptr)[:accessor.count]
+                return (transmute([^]mat2.Mat2(i8))start_ptr)[:accessor.count]
             case .Short:
-                return (transmute([^]mat.Mat2(i16))start_ptr)[:accessor.count]
+                return (transmute([^]mat2.Mat2(i16))start_ptr)[:accessor.count]
             case .Unsigned_Short:
-                return (transmute([^]mat.Mat2(u16))start_ptr)[:accessor.count]
+                return (transmute([^]mat2.Mat2(u16))start_ptr)[:accessor.count]
             case .Unsigned_Int:
-                return (transmute([^]mat.Mat2(u32))start_ptr)[:accessor.count]
+                return (transmute([^]mat2.Mat2(u32))start_ptr)[:accessor.count]
             case .Float:
-                return (transmute([^]mat.Mat2(f32))start_ptr)[:accessor.count]
+                return (transmute([^]mat2.Mat2(f32))start_ptr)[:accessor.count]
             }
 
         case .Matrix3:
             switch accessor.component_type {
             case .Unsigned_Byte:
-                return (transmute([^]mat.Mat3(u8))start_ptr)[:accessor.count]
+                return (transmute([^]mat3.Mat3(u8))start_ptr)[:accessor.count]
             case .Byte:
-                return (transmute([^]mat.Mat3(i8))start_ptr)[:accessor.count]
+                return (transmute([^]mat3.Mat3(i8))start_ptr)[:accessor.count]
             case .Short:
-                return (transmute([^]mat.Mat3(i16))start_ptr)[:accessor.count]
+                return (transmute([^]mat3.Mat3(i16))start_ptr)[:accessor.count]
             case .Unsigned_Short:
-                return (transmute([^]mat.Mat3(u16))start_ptr)[:accessor.count]
+                return (transmute([^]mat3.Mat3(u16))start_ptr)[:accessor.count]
             case .Unsigned_Int:
-                return (transmute([^]mat.Mat3(u32))start_ptr)[:accessor.count]
+                return (transmute([^]mat3.Mat3(u32))start_ptr)[:accessor.count]
             case .Float:
-                return (transmute([^]mat.Mat3(f32))start_ptr)[:accessor.count]
+                return (transmute([^]mat3.Mat3(f32))start_ptr)[:accessor.count]
             }
 
         case .Matrix4:
             switch accessor.component_type {
             case .Unsigned_Byte:
-                return (transmute([^]mat.Mat4(u8))start_ptr)[:accessor.count]
+                return (transmute([^]mat4.Mat4(u8))start_ptr)[:accessor.count]
             case .Byte:
-                return (transmute([^]mat.Mat4(i8))start_ptr)[:accessor.count]
+                return (transmute([^]mat4.Mat4(i8))start_ptr)[:accessor.count]
             case .Short:
-                return (transmute([^]mat.Mat4(i16))start_ptr)[:accessor.count]
+                return (transmute([^]mat4.Mat4(i16))start_ptr)[:accessor.count]
             case .Unsigned_Short:
-                return (transmute([^]mat.Mat4(u16))start_ptr)[:accessor.count]
+                return (transmute([^]mat4.Mat4(u16))start_ptr)[:accessor.count]
             case .Unsigned_Int:
-                return (transmute([^]mat.Mat4(u32))start_ptr)[:accessor.count]
+                return (transmute([^]mat4.Mat4(u32))start_ptr)[:accessor.count]
             case .Float:
-                return (transmute([^]mat.Mat4(f32))start_ptr)[:accessor.count]
+                return (transmute([^]mat4.Mat4(f32))start_ptr)[:accessor.count]
             }
 
         }

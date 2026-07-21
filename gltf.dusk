@@ -1365,7 +1365,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
 
     for node, idx in dyn_array.slice(nodes_array) {
         res[idx].mat = Matrix4(1)
-        res[idx].rotation = Quaternion(1)
+        res[idx].rotation = { r = 1 }
         res[idx].scale = {1, 1, 1}
 
         for k, v in node.(json.Object) {

@@ -143,12 +143,12 @@ parse :: proc(file_content: []u8, opt := Options{}, allocator: mem.Allocator) ->
     }
 
     // Load remaining binary chunks.
-    for buf_idx: uint; opt.is_glb && buf_idx < len(data.buffers) && uint(content_index) < len(file_content); buf_idx += 1 {
+    for buf_idx: u32; opt.is_glb && buf_idx < u32(len(data.buffers)) && u32(content_index) < u32(len(file_content)); buf_idx += 1 {
         chunk_header := (cast(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + u32(GLB_CHUNK_HEADER_SIZE)])))
         content_index += u32(GLB_CHUNK_HEADER_SIZE)
 
-        data.buffers[buf_idx].uri, _ = slice.create(u8, uint(chunk_header.length), allocator)
-        intrinsics.mem_copy(raw_data(data.buffers[buf_idx].uri.([]u8)), raw_data(file_content[content_index:]), int(chunk_header.length))
+        data.buffers[buf_idx].uri, _ = slice.create(u8, usize(chunk_header.length), allocator)
+        intrinsics.mem_copy(raw_data(data.buffers[buf_idx].uri.([]u8)), raw_data(file_content[content_index:]), isize(chunk_header.length))
         content_index += u32(chunk_header.length)
     }
 
@@ -224,8 +224,8 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
 
 
 @(private)
-warning_unexpected_data :: proc(proc_name, key: string, val: json.Value, idx: uint = 0) {
-    os.printfln("WARNING: Unexpected data in proc: % at index: %\nKey: %, value: %", proc_name, str.from_uint(idx), key, str.from_union(val))
+warning_unexpected_data :: proc(proc_name, key: string, val: json.Value, idx: usize = 0) {
+    os.printfln("WARNING: Unexpected data in proc: % at index: %\nKey: %, value: %", proc_name, str.from_num(idx), key, str.from_union(val))
 }
 
 /*
@@ -237,7 +237,7 @@ asset_parse :: proc(object: json.Object) -> (res: Asset, err: Error) {
         return res, GLTF_Error{type = .JSON_Missing_Section, proc_name = #procedure, param = {name = ASSET_KEY}}
     }
 
-    version_found: bool
+    version_found: b8
 
     for k, v in object[ASSET_KEY].(json.Object) {
         switch k {
@@ -295,7 +295,7 @@ accessors_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
     res, _ = slice.create(Accessor, accessor_array.len, allocator)
 
     for access, idx in dyn_array.slice(accessor_array) {
-        component_type_set, count_set, type_set: bool
+        component_type_set, count_set, type_set: b8
 
         for k, v in access.(json.Object) {
             switch k {
@@ -311,7 +311,7 @@ accessors_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
                 component_type_set = true
 
             case "normalized":
-                res[idx].normalized = v.(bool)
+                res[idx].normalized = v.(b8)
 
             case "count":
                 // Required
@@ -448,7 +448,7 @@ sparse_indices_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (re
     res, _ = slice.create(Accessor_Sparse_Indices, array.len, allocator)
 
     for index, idx in array.data[:array.len] {
-        buffer_view_set, component_type_set: bool
+        buffer_view_set, component_type_set: b8
 
         for k, v in index.(json.Object) {
             switch k {
@@ -503,7 +503,7 @@ sparse_values_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res
     res, _ = slice.create(Accessor_Sparse_Values, array.len, allocator)
 
     for value, idx in array.data[:array.len] {
-        buffer_view_set: bool
+        buffer_view_set: b8
 
         for k, v in value.(json.Object) {
             switch k {
@@ -594,7 +594,7 @@ animation_channels_parse :: proc(array: json.Array, allocator: mem.Allocator) ->
     res, _ = slice.create(Animation_Channel, array.len, allocator)
 
     for channel, idx in array.data[:array.len] {
-        sampler_set, target_set: bool
+        sampler_set, target_set: b8
 
         for k, v in channel.(json.Object) {
             switch k {
@@ -634,7 +634,7 @@ animation_channels_parse :: proc(array: json.Array, allocator: mem.Allocator) ->
 
 
 animation_channel_target_parse :: proc(object: json.Object) -> (res: Animation_Channel_Target, err: Error) {
-    path_set: bool
+    path_set: b8
 
     for k, v in object {
         switch k {
@@ -682,7 +682,7 @@ animation_samplers_parse :: proc(array: json.Array, allocator: mem.Allocator) ->
     res, _ = slice.create(Animation_Sampler, array.len, allocator)
 
     for sampler, idx in array.data[:array.len] {
-        input_set, output_set: bool
+        input_set, output_set: b8
 
         for k, v in sampler.(json.Object) {
             switch k {
@@ -746,7 +746,7 @@ buffers_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Allo
     res, _ = slice.create(Buffer, buffers_array.len, allocator)
 
     for buffer, idx in dyn_array.slice(buffers_array) {
-        byte_length_set: bool
+        byte_length_set: b8
 
         for k, v in buffer.(json.Object) {
             switch k {
@@ -798,7 +798,7 @@ buffer_views_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (re
     res, _ = slice.create(Buffer_View, views_array.len, allocator)
 
     for view, idx in dyn_array.slice(views_array) {
-        buffer_set, byte_length_set: bool
+        buffer_set, byte_length_set: b8
 
         for k, v in view.(json.Object) {
             switch k {
@@ -901,7 +901,7 @@ cameras_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []
 
 
 orthographic_camera_parse :: proc(object: json.Object) -> (res: Orthographic_Camera, err: Error) {
-    xmag_set, ymag_set, zfar_set, znear_set: bool
+    xmag_set, ymag_set, zfar_set, znear_set: b8
 
     for k, v in object {
         switch k {
@@ -954,7 +954,7 @@ orthographic_camera_parse :: proc(object: json.Object) -> (res: Orthographic_Cam
 
 
 perspective_camera_parse :: proc(object: json.Object) -> (res: Perspective_Camera, err: Error) {
-    yfov_set, znear_set: bool
+    yfov_set, znear_set: b8
 
     for k, v in object {
         switch k {
@@ -1083,7 +1083,7 @@ materials_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
 
             case "doubleSided":
                 // Default false
-                res[idx].double_sided = v.(bool)
+                res[idx].double_sided = v.(b8)
 
             case "emissiveFactor":
                 // Default [0, 0, 0]
@@ -1124,7 +1124,7 @@ materials_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
 
 
 normal_texture_info_parse :: proc(object: json.Object) -> (res: Material_Normal_Texture_Info, err: Error) {
-    index_set: bool
+    index_set: b8
     res.scale = 1
 
     for k, v in object {
@@ -1162,7 +1162,7 @@ normal_texture_info_parse :: proc(object: json.Object) -> (res: Material_Normal_
 
 
 occlusion_texture_info_parse :: proc(object: json.Object) -> (res: Material_Occlusion_Texture_Info, err: Error) {
-    index_set: bool
+    index_set: b8
     res.strength = 1
 
     for k, v in object {
@@ -1626,7 +1626,7 @@ textures_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: [
 
 
 texture_info_parse :: proc(object: json.Object) -> (res: Texture_Info, err: Error) {
-    index_set: bool
+    index_set: b8
     for k, v in object {
         switch k {
         case "index":

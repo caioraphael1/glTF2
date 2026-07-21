@@ -43,14 +43,14 @@ Options :: struct {
 }
 
 GLB_Header :: struct {
-    magic, version, length: u32le,
+    magic, version, length: u32,
 }
 
 CHUNK_TYPE_BIN :: 0x004e4942
 CHUNK_TYPE_JSON :: 0x4e4f534a
 
 GLB_Chunk_Header :: struct {
-    length, type: u32le,
+    length, type: u32,
 }
 
 

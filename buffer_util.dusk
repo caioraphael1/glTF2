@@ -83,14 +83,14 @@ buffer_slice :: proc(data: ^Data, accessor_index: Unsigned_Integer) -> Buffer_Sl
     accessor := data.accessors[accessor_index]
     internal.assert(accessor.buffer_view != nil, "buf_iter_make: selected accessor doesn't have buffer_view")
 
-    buffer_view := data.buffer_views[accessor.buffer_view.?]
+    buffer_view := data.buffer_views[accessor.buffer_view.(Unsigned_Integer)]
 
-    if _, ok := accessor.sparse.?; ok {
+    if _, ok := accessor.sparse.(Accessor_Sparse); ok {
         internal.assert(false, "Sparse not supported")
         return nil
     }
 
-    // if _, ok := buffer_view.byte_stride.?; ok {  // eu inverti essa condicional.
+    // if _, ok := buffer_view.byte_stride.(Unsigned_Integer); ok {  // eu inverti essa condicional.
     //     os.printfln("buffer_view: %", buffer_view)
     //     internal.assert(false, "Cannot use a stride")
     //     return nil

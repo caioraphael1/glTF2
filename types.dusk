@@ -1,4 +1,3 @@
-import "base:internal"
 import "base:container/quaternion"
 
 import "core:encoding/json"
@@ -66,7 +65,7 @@ Data :: struct {
     meshes:              []Mesh,
     nodes:               []Node,
     samplers:            []Sampler,
-    scene:               internal.Maybe(Unsigned_Integer),
+    scene:               union { Unsigned_Integer },
     scenes:              []Scene,
     skins:               []Skin,
     textures:            []Texture,
@@ -117,8 +116,8 @@ Error_Type :: enum {
 */
 Asset :: struct {
     version:              Number, // Required
-    min_version:          internal.Maybe(Number),
-    copyright, generator: internal.Maybe(string),
+    min_version:          union { Number },
+    copyright, generator: union { string },
     extensions:           Extensions,
     extras:               Extras,
 }
@@ -154,10 +153,10 @@ Accessor :: struct {
     normalized:     b8,
     count:          Unsigned_Integer, // Required
     type:           Accessor_Type, // Required
-    buffer_view:    internal.Maybe(Unsigned_Integer),
-    max, min:       internal.Maybe([16]Number),
-    name:           internal.Maybe(string),
-    sparse:         internal.Maybe(Accessor_Sparse),
+    buffer_view:    union { Unsigned_Integer },
+    max, min:       union { [16]Number },
+    name:           union { string },
+    sparse:         union { Accessor_Sparse },
     extensions:     Extensions,
     extras:         Extras,
 }
@@ -202,7 +201,7 @@ Accessor_Sparse_Values :: struct {
 Animation :: struct {
     channels:   []Animation_Channel, // Required
     samplers:   []Animation_Sampler, // Required
-    name:       internal.Maybe(string),
+    name:       union { string },
     extensions: Extensions,
     extras:     Extras,
 }
@@ -216,7 +215,7 @@ Animation_Channel :: struct {
 
 Animation_Channel_Target :: struct {
     path:       Animation_Channel_Path, // Required
-    node:       internal.Maybe(Unsigned_Integer),
+    node:       union { Unsigned_Integer },
     extensions: Extensions,
     extras:     Extras,
 }
@@ -246,7 +245,7 @@ Animation_Channel_Path :: enum {
 */
 Buffer :: struct {
     byte_length: Unsigned_Integer,
-    name:        internal.Maybe(string),
+    name:        union { string },
     uri:         Uri,
     extensions:  Extensions,
     extras:      Extras,
@@ -254,9 +253,9 @@ Buffer :: struct {
 
 Buffer_View :: struct {
     buffer, byte_offset, byte_length: Unsigned_Integer,
-    byte_stride:                      internal.Maybe(Unsigned_Integer),
-    target:                           internal.Maybe(Buffer_Type_Hint),
-    name:                             internal.Maybe(string),
+    byte_stride:                      union { Unsigned_Integer },
+    target:                           union { Buffer_Type_Hint },
+    name:                             union { string },
     extensions:                       Extensions,
     extras:                           Extras,
 }
@@ -275,14 +274,14 @@ Camera :: struct {
         Perspective_Camera,
         Orthographic_Camera,
     },
-    name:       internal.Maybe(string),
+    name:       union { string },
     extensions: Extensions,
     extras:     Extras,
 }
 
 Perspective_Camera :: struct {
     yfov, znear:        Number,
-    aspect_ratio, zfar: internal.Maybe(Number),
+    aspect_ratio, zfar: union { Number },
     extensions:         Extensions,
     extras:             Extras,
 }
@@ -299,10 +298,10 @@ Orthographic_Camera :: struct {
     Image related data structures
 */
 Image :: struct {
-    name:        internal.Maybe(string),
+    name:        union { string },
     uri:         Uri,
-    type:        internal.Maybe(Image_Type),
-    buffer_view: internal.Maybe(Unsigned_Integer),
+    type:        union { Image_Type },
+    buffer_view: union { Unsigned_Integer },
     extensions:  Extensions,
     extras:      Extras,
 }
@@ -321,11 +320,11 @@ Material :: struct {
     alpha_mode:         Material_Alpha_Mode,
     alpha_cutoff:       Number, // Default 0.5
     double_sided:       b8,
-    name:               internal.Maybe(string),
-    emissive_texture:   internal.Maybe(Texture_Info),
-    metallic_roughness: internal.Maybe(Material_Metallic_Roughness),
-    normal_texture:     internal.Maybe(Material_Normal_Texture_Info),
-    occlusion_texture:  internal.Maybe(Material_Occlusion_Texture_Info),
+    name:               union { string },
+    emissive_texture:   union { Texture_Info },
+    metallic_roughness: union { Material_Metallic_Roughness },
+    normal_texture:     union { Material_Normal_Texture_Info },
+    occlusion_texture:  union { Material_Occlusion_Texture_Info },
     extensions:         Extensions,
     extras:             Extras,
 }
@@ -340,7 +339,7 @@ Material_Alpha_Mode :: enum {
 Material_Metallic_Roughness :: struct {
     base_color_factor:                              [4]Number, // Default [1, 1, 1, 1]
     metallic_factor, roughness_factor:              Number, // Default 1
-    base_color_texture, metallic_roughness_texture: internal.Maybe(Texture_Info),
+    base_color_texture, metallic_roughness_texture: union { Texture_Info },
     extensions:                                     Extensions,
     extras:                                         Extras,
 }
@@ -366,7 +365,7 @@ Material_Occlusion_Texture_Info :: struct {
 Mesh :: struct {
     primitives: []Mesh_Primitive,
     weights:    []Number,
-    name:       internal.Maybe(string),
+    name:       union { string },
     extensions: Extensions,
     extras:     Extras,
 }
@@ -374,7 +373,7 @@ Mesh :: struct {
 Mesh_Primitive :: struct {
     attributes:        map[string]Unsigned_Integer, // Required
     mode:              Mesh_Primitive_Mode, // Default Triangles(4)
-    indices, material: internal.Maybe(Unsigned_Integer),
+    indices, material: union { Unsigned_Integer },
     targets:           []Mesh_Target,
     extensions:        Extensions,
     extras:            Extras,
@@ -420,9 +419,9 @@ Node :: struct {
     rotation:           Quaternion, // Defaults to [x = 0, y = 0, z = 0, w = 1]
     scale:              [3]Number,  // Defaults to [1, 1, 1]
     translation:        [3]Number,
-    camera, mesh, skin: internal.Maybe(Unsigned_Integer),
+    camera, mesh, skin: union { Unsigned_Integer },
     children:           []Unsigned_Integer,
-    name:               internal.Maybe(string),
+    name:               union { string },
     weights:            []Number,
     extensions:         Extensions,
     extras:             Extras,
@@ -434,9 +433,9 @@ Node :: struct {
 */
 Sampler :: struct {
     wrapS, wrapT: Wrap_Mode, // Default Repeat(10497)
-    name:         internal.Maybe(string),
-    mag_filter:   internal.Maybe(Magnification_Filter),
-    min_filter:   internal.Maybe(Minification_Filter),
+    name:         union { string },
+    mag_filter:   union { Magnification_Filter },
+    min_filter:   union { Minification_Filter },
     extensions:   Extensions,
     extras:       Extras,
 }
@@ -467,7 +466,7 @@ Minification_Filter :: enum u16 {
 */
 Scene :: struct {
     nodes:      []Unsigned_Integer,
-    name:       internal.Maybe(string),
+    name:       union { string },
     extensions: Extensions,
     extras:     Extras,
 }
@@ -478,8 +477,8 @@ Scene :: struct {
 */
 Skin :: struct {
     joints:                          []Unsigned_Integer, // Required
-    inverse_bind_matrices, skeleton: internal.Maybe(Unsigned_Integer),
-    name:                            internal.Maybe(string),
+    inverse_bind_matrices, skeleton: union { Unsigned_Integer },
+    name:                            union { string },
     extensions:                      Extensions,
     extras:                          Extras,
 }
@@ -489,8 +488,8 @@ Skin :: struct {
     Texture related data structures
 */
 Texture :: struct {
-    sampler, source: internal.Maybe(Unsigned_Integer),
-    name:            internal.Maybe(string),
+    sampler, source: union { Unsigned_Integer },
+    name:            union { string },
     extensions:      Extensions,
     extras:          Extras,
 }

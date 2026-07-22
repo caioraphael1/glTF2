@@ -90,7 +90,7 @@ parse :: proc(file_content: []u8, opt := Options{}, allocator: mem.Allocator) ->
     content_index: u32
 
     if opt.is_glb {
-        header := (cast(^GLB_Header)(raw_data(file_content[:GLB_HEADER_SIZE])))
+        header := (transmute(^GLB_Header)(raw_data(file_content[:GLB_HEADER_SIZE])))
         content_index += u32(GLB_HEADER_SIZE)
 
         switch {
@@ -101,7 +101,7 @@ parse :: proc(file_content: []u8, opt := Options{}, allocator: mem.Allocator) ->
         }
 
         // GLB file format expects 1 JSON chunk right after header
-        json_header := (cast(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + u32(GLB_CHUNK_HEADER_SIZE)])))
+        json_header := (transmute(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + u32(GLB_CHUNK_HEADER_SIZE)])))
         if json_header.type != CHUNK_TYPE_JSON {
             return data, GLTF_Error{type = .Wrong_Chunk_Type, proc_name = #procedure, param = {name = "JSON Chunk"}}
         }
@@ -146,7 +146,7 @@ parse :: proc(file_content: []u8, opt := Options{}, allocator: mem.Allocator) ->
 
     // Load remaining binary chunks.
     for buf_idx: u32; opt.is_glb && buf_idx < u32(len(data.buffers)) && u32(content_index) < u32(len(file_content)); buf_idx += 1 {
-        chunk_header := (cast(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + u32(GLB_CHUNK_HEADER_SIZE)])))
+        chunk_header := (transmute(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + u32(GLB_CHUNK_HEADER_SIZE)])))
         content_index += u32(GLB_CHUNK_HEADER_SIZE)
 
         data.buffers[buf_idx].uri, _ = slice.create(u8, usize(chunk_header.length), allocator)
@@ -195,7 +195,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
         if err != nil {
             return uri
         }
-        return cast([]u8)bytes
+        return bytes
     }
 
     type := str_data[:type_idx]

@@ -83,7 +83,7 @@ buffer_slice :: proc(data: ^Data, accessor_index: Unsigned_Integer) -> Buffer_Sl
     accessor := data.accessors[accessor_index]
     internal.assert(accessor.buffer_view != nil, "buf_iter_make: selected accessor doesn't have buffer_view")
 
-    buffer_view := data.buffer_views[accessor.buffer_view.(Unsigned_Integer)]
+    buffer_view := data.buffer_views[accessor.buffer_view.(Unsigned_Integer) or_else {}]
 
     if _, ok := accessor.sparse.(Accessor_Sparse); ok {
         internal.assert(false, "Sparse not supported")

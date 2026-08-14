@@ -2,47 +2,23 @@ import "base:internal"
 import "base:intrinsics"
 import "base:mem"
 import "base:container/str"
+import "base:container/str_slice"
 import "base:container/slice"
 import "base:container/dyn_array"
 import "base:container/maps"
 import "base:strconv"
 
 import "core:math/mat4"
-
 import "core:encoding/base64"
 import "core:encoding/json"
 import "core:os"
-import "core:strings_tools"
+import "core:path"
 
 
 GLB_MAGIC :: 0x46546c67
 GLB_HEADER_SIZE       :: size_of(GLB_Header)
 GLB_CHUNK_HEADER_SIZE :: size_of(GLB_Chunk_Header)
 GLTF_MIN_VERSION :: 2
-
-
-/* 
-Fix to avoid using core:path/filepath
-*/
-dir :: proc(path: string, allocator: mem.Allocator) -> (dirs: string) {
-    path_trimmed := path
-    last_char := len(path) - 1
-    if path[last_char] == '/' {
-        path_trimmed = path[:last_char]
-    }
-    dirs_slice, _ := strings_tools.split(path_trimmed, "/", allocator)
-    last := dirs_slice[len(dirs_slice) - 1]
-    return strings_tools.trim_suffix(path_trimmed, last)
-}
-ext :: proc(path: string) -> string {
-    for i := len(path)-1; i >= 0 && (path[i] != '/'); i -= 1 {
-        if path[i] == '.' {
-            return path[i:]
-        }
-    }
-    return ""
-}
-
 
 
 /*
@@ -59,15 +35,15 @@ load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^D
         return nil, GLTF_Error{type = .Cant_Read_File, proc_name = #procedure, param = {name = file_name}}
     }
 
-    gltf_dir := dir(file_name, allocator)
+    gltf_dir := str_slice.to_literal(path.dir_fullpath(str_slice.from_literal(file_name)))
 
     options := Options{
         delete_content = true,
         gltf_dir       = gltf_dir,
     }
-    new_file_name: str.String(32)
-    _ = str.set(&new_file_name, ext(file_name))
-    strings_tools.to_lower(&new_file_name)
+    new_file_name: str.Str(32)
+    _ = str.set(&new_file_name, path.ext(file_name))
+    str.to_lower(&new_file_name)
     switch str.str(&new_file_name) {
     case ".gltf":
         return parse(file_content, options, allocator)
@@ -188,10 +164,10 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     }
 
     str_data, _ := uri.(string)
-    type_idx, found := strings_tools.index_rune(str_data, ':')
+    type_idx, found := str_slice.index_rune(str_data, ':')
     if !found {
         // Check if this is possible file and if so load it
-        s: str.String(64)
+        s: str.Str(64)
         internal.assert(str.setf(&s, "%/%", gltf_dir, str_data))
         bytes, err := os.read_entire_file_from_path(str.str(&s), allocator)
         if err != nil {
@@ -203,11 +179,11 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     type := str_data[:type_idx]
     switch type {
     case "data":
-        encoding_start_idx, start_found := strings_tools.index_rune(str_data, ';')
+        encoding_start_idx, start_found := str_slice.index_rune(str_data, ';')
         if !start_found {
             return uri
         }
-        encoding_end_idx, end_found := strings_tools.index_rune(str_data, ',')
+        encoding_end_idx, end_found := str_slice.index_rune(str_data, ',')
         if !end_found {
             return uri
         }

@@ -3,10 +3,9 @@ import "base:intrinsics"
 import "base:mem"
 import "base:container/str"
 import "base:container/str_slice"
-import "base:container/slice"
+import "base:container/array_slice"
 import "base:container/dyn_array"
 import "base:container/maps"
-import "base:strconv"
 
 import "core:math/mat4"
 import "core:encoding/base64"
@@ -35,7 +34,7 @@ load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^D
         return nil, GLTF_Error{type = .Cant_Read_File, proc_name = #procedure, param = {name = file_name}}
     }
 
-    gltf_dir := str_slice.to_literal(path.dir_fullpath(str_slice.from_literal(file_name)))
+    gltf_dir := str_slice.to_literal(path.parent_dir(str_slice.from_literal(file_name)))
 
     options := Options{
         delete_content = true,
@@ -126,7 +125,7 @@ parse :: proc(file_content: []u8, opt := Options{}, allocator: mem.Allocator) ->
         chunk_header := (transmute(^GLB_Chunk_Header)(raw_data(file_content[content_index:content_index + u32(GLB_CHUNK_HEADER_SIZE)])))
         content_index += u32(GLB_CHUNK_HEADER_SIZE)
 
-        data.buffers[buf_idx].uri, _ = slice.create(u8, usize(chunk_header.length), allocator)
+        data.buffers[buf_idx].uri, _ = array_slice.create(u8, usize(chunk_header.length), allocator)
         intrinsics.mem_copy(raw_data(data.buffers[buf_idx].uri.([]u8) or_else {}), raw_data(file_content[content_index:]), isize(chunk_header.length))
         content_index += u32(chunk_header.length)
     }
@@ -145,7 +144,7 @@ extensions_names_parse :: proc(object: json.Object, name: string, allocator: mem
 
     name_value, _ := maps.get(object, name)
     name_array, _ := name_value.(json.Array)
-    res, _ = slice.create(string, name_array.len, allocator)
+    res, _ = array_slice.create(string, name_array.len, allocator)
 
     for n, i in dyn_array.slice(name_array) {
         res[i] = n.(string) or_else ""
@@ -164,11 +163,11 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     }
 
     str_data, _ := uri.(string)
-    type_idx, found := str_slice.index_rune(str_data, ':')
+    type_idx, found := str_slice.index_rune(str_slice.from_literal(str_data), ':')
     if !found {
         // Check if this is possible file and if so load it
         s: str.Str(64)
-        internal.assert(str.setf(&s, "%/%", gltf_dir, str_data))
+        os.assert(str.setf(&s, "%/%", gltf_dir, str_data))
         bytes, err := os.read_entire_file_from_path(str.str(&s), allocator)
         if err != nil {
             return uri
@@ -179,11 +178,11 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     type := str_data[:type_idx]
     switch type {
     case "data":
-        encoding_start_idx, start_found := str_slice.index_rune(str_data, ';')
+        encoding_start_idx, start_found := str_slice.index_rune(str_slice.from_literal(str_data), ';')
         if !start_found {
             return uri
         }
-        encoding_end_idx, end_found := str_slice.index_rune(str_data, ',')
+        encoding_end_idx, end_found := str_slice.index_rune(str_slice.from_literal(str_data), ',')
         if !end_found {
             return uri
         }
@@ -193,7 +192,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
         switch encoding {
         case "base64":
             // FIX: (2026-04-18) I broke this when changing to container/str
-            // internal.assert(base64.decode(str_data[encoding_end_idx + 1:]))
+            // os.assert(base64.decode(str_data[encoding_end_idx + 1:]))
             // return dec
             os.panic("Not implemented yet") 
         }
@@ -231,7 +230,7 @@ asset_parse :: proc(object: json.Object) -> (res: Asset, err: Error) {
 
         case "version":
             // Required
-            version, ok := strconv.parse_f64(v.(string) or_else {})
+            version, ok := str_slice.to_f64(str_slice.from_literal(v.(string) or_else {}))
             if !ok {
                 return res, GLTF_Error{type = .Invalid_Type, proc_name = #procedure, param = {name = "version"}}
             }
@@ -239,7 +238,7 @@ asset_parse :: proc(object: json.Object) -> (res: Asset, err: Error) {
             version_found = true
 
         case "minVersion":
-            version, ok := strconv.parse_f64(v.(string) or_else {})
+            version, ok := str_slice.to_f64(str_slice.from_literal(v.(string) or_else {}))
             if !ok {
                 continue
             }
@@ -275,7 +274,7 @@ accessors_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
 
     accessor_array_value, _ := maps.get(object, ACCESSORS_KEY)
     accessor_array, _ := accessor_array_value.(json.Array)
-    res, _ = slice.create(Accessor, accessor_array.len, allocator)
+    res, _ = array_slice.create(Accessor, accessor_array.len, allocator)
 
     for access, idx in dyn_array.slice(accessor_array) {
         component_type_set, count_set, type_set: b8
@@ -428,7 +427,7 @@ accessor_sparse_parse :: proc(object: json.Object, allocator: mem.Allocator) -> 
 
 
 sparse_indices_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Accessor_Sparse_Indices, err: Error) {
-    res, _ = slice.create(Accessor_Sparse_Indices, array.len, allocator)
+    res, _ = array_slice.create(Accessor_Sparse_Indices, array.len, allocator)
 
     for index, idx in array.data[:array.len] {
         buffer_view_set, component_type_set: b8
@@ -483,7 +482,7 @@ sparse_indices_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (re
 
 
 sparse_values_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Accessor_Sparse_Values, err: Error) {
-    res, _ = slice.create(Accessor_Sparse_Values, array.len, allocator)
+    res, _ = array_slice.create(Accessor_Sparse_Values, array.len, allocator)
 
     for value, idx in array.data[:array.len] {
         buffer_view_set: b8
@@ -534,7 +533,7 @@ animations_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res:
 
     animations_array_value, _ := maps.get(object, ANIMATIONS_KEY)
     animations_array, _ := animations_array_value.(json.Array)
-    res, _ = slice.create(Animation, animations_array.len, allocator)
+    res, _ = array_slice.create(Animation, animations_array.len, allocator)
 
     for animation, idx in dyn_array.slice(animations_array) {
         for k, v in animation.(json.Object) or_else {} {
@@ -575,7 +574,7 @@ animations_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res:
 
 
 animation_channels_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Animation_Channel, err: Error) {
-    res, _ = slice.create(Animation_Channel, array.len, allocator)
+    res, _ = array_slice.create(Animation_Channel, array.len, allocator)
 
     for channel, idx in array.data[:array.len] {
         sampler_set, target_set: b8
@@ -663,7 +662,7 @@ animation_channel_target_parse :: proc(object: json.Object) -> (res: Animation_C
 
 
 animation_samplers_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Animation_Sampler, err: Error) {
-    res, _ = slice.create(Animation_Sampler, array.len, allocator)
+    res, _ = array_slice.create(Animation_Sampler, array.len, allocator)
 
     for sampler, idx in array.data[:array.len] {
         input_set, output_set: b8
@@ -729,7 +728,7 @@ buffers_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Allo
     buffers_array_value, _ := maps.get(object, BUFFERS_KEY)
 
     buffers_array, _ := buffers_array_value.(json.Array)
-    res, _ = slice.create(Buffer, buffers_array.len, allocator)
+    res, _ = array_slice.create(Buffer, buffers_array.len, allocator)
 
     for buffer, idx in dyn_array.slice(buffers_array) {
         byte_length_set: b8
@@ -783,7 +782,7 @@ buffer_views_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (re
     views_array_value, _ := maps.get(object, BUFFER_VIEWS_KEY)
 
     views_array, _ := views_array_value.(json.Array)
-    res, _ = slice.create(Buffer_View, views_array.len, allocator)
+    res, _ = array_slice.create(Buffer_View, views_array.len, allocator)
 
     for view, idx in dyn_array.slice(views_array) {
         buffer_set, byte_length_set: b8
@@ -852,7 +851,7 @@ cameras_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []
     cameras_array_value, _ := maps.get(object, CAMERAS_KEY)
 
     cameras_array, _ := cameras_array_value.(json.Array)
-    res, _ = slice.create(Camera, cameras_array.len, allocator)
+    res, _ = array_slice.create(Camera, cameras_array.len, allocator)
 
     for camera, idx in dyn_array.slice(cameras_array) {
         for k, v in camera.(json.Object) or_else {} {
@@ -997,7 +996,7 @@ images_parse :: proc(object: json.Object, gltf_dir: string, allocator: mem.Alloc
     images_array_value, _ := maps.get(object, IMAGES_KEY)
 
     images_array, _ := images_array_value.(json.Array)
-    res, _ = slice.create(Image, images_array.len, allocator)
+    res, _ = array_slice.create(Image, images_array.len, allocator)
 
     for image, idx in dyn_array.slice(images_array) {
         for k, v in image.(json.Object) or_else {} {
@@ -1050,7 +1049,7 @@ materials_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: 
     materials_array_value, _ := maps.get(object, MATERIALS_KEY)
 
     materials_array, _ := materials_array_value.(json.Array)
-    res, _ = slice.create(Material, materials_array.len, allocator)
+    res, _ = array_slice.create(Material, materials_array.len, allocator)
 
     for material, idx in dyn_array.slice(materials_array) {
         res[idx].alpha_cutoff = 0.5
@@ -1247,7 +1246,7 @@ meshes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []M
     meshes_array_value, _ := maps.get(object, MESHES_KEY)
 
     meshes_array, _ := meshes_array_value.(json.Array)
-    res, _ = slice.create(Mesh, meshes_array.len, allocator)
+    res, _ = array_slice.create(Mesh, meshes_array.len, allocator)
 
     for mesh, idx in dyn_array.slice(meshes_array) {
         for k, v in mesh.(json.Object) or_else {} {
@@ -1260,7 +1259,7 @@ meshes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []M
                 res[idx].primitives = mesh_primitives_parse(v.(json.Array) or_else {}, allocator) or_return
 
             case "weights":
-                res[idx].weights, _ = slice.create(Number, (v.(json.Array) or_else {}).len, allocator)
+                res[idx].weights, _ = array_slice.create(Number, (v.(json.Array) or_else {}).len, allocator)
                 dyn_arr, _ := v.(json.Array)
                 for num, i in dyn_array.slice(dyn_arr) {
                     res[idx].weights[i] = Number(num.(f64) or_else {})
@@ -1291,7 +1290,7 @@ meshes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []M
 
 
 mesh_primitives_parse :: proc(array: json.Array, allocator: mem.Allocator) -> (res: []Mesh_Primitive, err: Error) {
-    res, _ = slice.create(Mesh_Primitive, array.len, allocator)
+    res, _ = array_slice.create(Mesh_Primitive, array.len, allocator)
 
     for primitive, idx in array.data[:array.len] {
         res[idx].mode = .Triangles
@@ -1357,7 +1356,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
     }
     nodes_array_value, _ := maps.get(object, NODES_KEY)
     nodes_array, _ := nodes_array_value.(json.Array)
-    res, _ = slice.create(Node, nodes_array.len, allocator)
+    res, _ = array_slice.create(Node, nodes_array.len, allocator)
 
     for node, idx in dyn_array.slice(nodes_array) {
         res[idx].matrix4 = mat4.identity(f32)
@@ -1370,7 +1369,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
                 res[idx].camera = Unsigned_Integer(v.(f64) or_else {})
 
             case "children":
-                res[idx].children, _ = slice.create(Unsigned_Integer, (v.(json.Array) or_else {}).len, allocator)
+                res[idx].children, _ = array_slice.create(Unsigned_Integer, (v.(json.Array) or_else {}).len, allocator)
                 dyn_arr, _ := v.(json.Array)
                 for child, i in dyn_array.slice(dyn_arr) {
                     res[idx].children[i] = Unsigned_Integer(child.(f64) or_else {})
@@ -1419,7 +1418,7 @@ nodes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []No
                 }
 
             case "weights":
-                res[idx].weights, _ = slice.create(Number, (v.(json.Array) or_else {}).len, allocator)
+                res[idx].weights, _ = array_slice.create(Number, (v.(json.Array) or_else {}).len, allocator)
                 dyn_arr, _ := v.(json.Array)
                 for weight, i in dyn_array.slice(dyn_arr) {
                     res[idx].weights[i] = Number(weight.(f64) or_else {})
@@ -1450,7 +1449,7 @@ samplers_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: [
 
     samplers_array_value, _ := maps.get(object, SAMPLERS_KEY)
     samplers_array, _ := samplers_array_value.(json.Array)
-    res, _ = slice.create(Sampler, samplers_array.len, allocator)
+    res, _ = array_slice.create(Sampler, samplers_array.len, allocator)
 
     for sampler, idx in dyn_array.slice(samplers_array) {
         res[idx].wrapS = .Repeat
@@ -1500,13 +1499,13 @@ scenes_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []S
 
     scenes_array_value, _ := maps.get(object, SCENES_KEY)
     scenes_array, _ := scenes_array_value.(json.Array)
-    res, _ = slice.create(Scene, scenes_array.len, allocator)
+    res, _ = array_slice.create(Scene, scenes_array.len, allocator)
 
     for scene, idx in dyn_array.slice(scenes_array) {
         for k, v in scene.(json.Object) or_else {} {
             switch k {
             case "nodes":
-                res[idx].nodes, _ = slice.create(Unsigned_Integer, (v.(json.Array) or_else {}).len, allocator)
+                res[idx].nodes, _ = array_slice.create(Unsigned_Integer, (v.(json.Array) or_else {}).len, allocator)
                 dyn_arr, _ := v.(json.Array)
                 for node, i in dyn_array.slice(dyn_arr) {
                     res[idx].nodes[i] = Unsigned_Integer(node.(f64) or_else {})
@@ -1541,7 +1540,7 @@ skins_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Sk
 
     skins_array_value, _ := maps.get(object, SKINS_KEY)
     skins_array, _ := skins_array_value.(json.Array)
-    res, _ = slice.create(Skin, skins_array.len, allocator)
+    res, _ = array_slice.create(Skin, skins_array.len, allocator)
 
     for skin, idx in dyn_array.slice(skins_array) {
         for k, v in skin.(json.Object) or_else {} {
@@ -1551,7 +1550,7 @@ skins_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: []Sk
 
             case "joints":
                 // Required
-                res[idx].joints, _ = slice.create(Unsigned_Integer, (v.(json.Array) or_else {}).len, allocator)
+                res[idx].joints, _ = array_slice.create(Unsigned_Integer, (v.(json.Array) or_else {}).len, allocator)
                 dyn_arr, _ := v.(json.Array)
                 for joint, i in dyn_array.slice(dyn_arr) {
                     res[idx].joints[i] = Unsigned_Integer(joint.(f64) or_else {})
@@ -1595,7 +1594,7 @@ textures_parse :: proc(object: json.Object, allocator: mem.Allocator) -> (res: [
 
     textures_array_value, _ := maps.get(object, TEXTURES_KEY)
     textures_array, _ := textures_array_value.(json.Array)
-    res, _ = slice.create(Texture, textures_array.len, allocator)
+    res, _ = array_slice.create(Texture, textures_array.len, allocator)
 
     for texture, idx in dyn_array.slice(textures_array) {
         for k, v in texture.(json.Object) or_else {} {

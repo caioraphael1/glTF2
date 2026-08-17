@@ -43,7 +43,7 @@ load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^D
     new_file_name: str.Str(32)
     _ = str.set(&new_file_name, path.ext(file_name))
     str.to_lower(&new_file_name)
-    switch str.str(&new_file_name) {
+    switch str_slice.to_literal(str.to_str_slice(&new_file_name)) {
     case ".gltf":
         return parse(file_content, options, allocator)
     case ".glb":
@@ -168,7 +168,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
         // Check if this is possible file and if so load it
         s: str.Str(64)
         os.assert(str.setf(&s, "%/%", gltf_dir, str_data))
-        bytes, err := os.read_entire_file(str.str(&s), allocator)
+        bytes, err := os.read_entire_file(str_slice.to_literal(str.to_str_slice(&s)), allocator)
         if err != nil {
             return uri
         }

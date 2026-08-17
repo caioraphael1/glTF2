@@ -29,7 +29,7 @@ load_from_file :: proc(file_name: string, allocator: mem.Allocator) -> (data: ^D
         return nil, GLTF_Error{type = .No_File, proc_name = #procedure, param = {name = file_name}}
     }
 
-    file_content, read_err := os.read_entire_file_from_path(file_name, allocator)
+    file_content, read_err := os.read_entire_file(file_name, allocator)
     if read_err != nil {
         return nil, GLTF_Error{type = .Cant_Read_File, proc_name = #procedure, param = {name = file_name}}
     }
@@ -168,7 +168,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
         // Check if this is possible file and if so load it
         s: str.Str(64)
         os.assert(str.setf(&s, "%/%", gltf_dir, str_data))
-        bytes, err := os.read_entire_file_from_path(str.str(&s), allocator)
+        bytes, err := os.read_entire_file(str.str(&s), allocator)
         if err != nil {
             return uri
         }

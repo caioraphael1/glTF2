@@ -163,7 +163,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     }
 
     str_data, _ := uri.(string)
-    type_idx, found := str_slice.index_rune(str_slice.from_literal(str_data), ':')
+    type_idx, found := str_slice.index_unicode(str_slice.from_literal(str_data), ':')
     if !found {
         // Check if this is possible file and if so load it
         s: str.Str(64)
@@ -178,11 +178,11 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     type := str_data[:type_idx]
     switch type {
     case "data":
-        encoding_start_idx, start_found := str_slice.index_rune(str_slice.from_literal(str_data), ';')
+        encoding_start_idx, start_found := str_slice.index_unicode(str_slice.from_literal(str_data), ';')
         if !start_found {
             return uri
         }
-        encoding_end_idx, end_found := str_slice.index_rune(str_slice.from_literal(str_data), ',')
+        encoding_end_idx, end_found := str_slice.index_unicode(str_slice.from_literal(str_data), ',')
         if !end_found {
             return uri
         }

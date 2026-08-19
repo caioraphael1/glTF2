@@ -87,11 +87,10 @@ parse :: proc(file_content: []u8, opt := Options{}, allocator: mem.Allocator) ->
         content_index += u32(json_header.length)
     }
 
-    json_parser := json.parser_create(json_data, allocator = allocator)
-    parsed_object, json_err := json.parse_object(&json_parser)
+    parsed_object, json_err := json.parse(json_data, allocator = allocator)
     data.json_value = parsed_object
     if json_err != .None && json_err != .EOF {
-        return data, JSON_Error{type = json_err, parser = json_parser}
+        return data, JSON_Error{type = json_err, parser = {} }
     }
 
     data.asset        = asset_parse(parsed_object.(json.Object) or_else {}) or_return

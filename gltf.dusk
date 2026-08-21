@@ -166,7 +166,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
     if !found {
         // Check if this is possible file and if so load it
         s: str.Str(64)
-        os.assert(str.setf(&s, "%/%", gltf_dir, str_data))
+        os.assert(str.setf(&s, "%/%", { gltf_dir, str_data }))
         bytes, err := os.read_entire_file(str_slice.to_literal(str.to_str_slice(&s)), allocator)
         if err != nil {
             return uri
@@ -203,7 +203,7 @@ uri_parse :: proc(uri: Uri, gltf_dir: string, allocator: mem.Allocator) -> Uri {
 
 @(private)
 warning_unexpected_data :: proc(proc_name, key: string, val: json.Value, idx: usize = 0) {
-    os.printfln("WARNING: Unexpected data in proc: % at index: %\nKey: %, value: %", proc_name, str.from_num(idx), key, str.from_union(val))
+    os.printfln("WARNING: Unexpected data in proc: % at index: %\nKey: %, value: %", { proc_name, str.from_num(idx), key, str.from_union(val) })
 }
 
 /*
